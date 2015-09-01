@@ -15,6 +15,14 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <version.aerospike>3.1.2</version.aerospike>
+        <version.spikeify>0.1-alpha-14</version.spikeify>
+        <version.fasterxml.jackson>[2.5,2.6)</version.fasterxml.jackson>
+
+        <version.junit>4.12</version.junit>
+        <version.mockito-all>1.10.8</version.mockito-all>
+        <version.trajano>1.0.1</version.trajano>
     </properties>
 
     <licenses>
@@ -44,37 +52,51 @@
         <dependency>
             <groupId>com.aerospike</groupId>
             <artifactId>aerospike-client</artifactId>
-            <version>3.1.2</version>
+            <version>${version.aerospike}</version>
         </dependency>
 
         <dependency>
             <groupId>com.spikeify</groupId>
             <artifactId>core</artifactId>
-            <version>0.1-alpha-14</version>
+            <version>${version.spikeify}</version>
         </dependency>
 
         <!--JSON serialization-->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>[2.5,2.6)</version>
+            <version>${version.fasterxml.jackson}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>[2.5,2.6)</version>
+            <version>${version.fasterxml.jackson}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>[2.5,2.6)</version>
+            <version>${version.fasterxml.jackson}</version>
         </dependency>
 
         <!--Testing stuff bellow-->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
+            <version>${version.junit}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>net.trajano.commons</groupId>
+            <artifactId>commons-testing</artifactId>
+            <version>${version.trajano}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
+            <version>${version.mockito-all}</version>
             <scope>test</scope>
         </dependency>
 
