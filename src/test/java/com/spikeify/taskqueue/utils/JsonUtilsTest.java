@@ -68,7 +68,7 @@ public class JsonUtilsTest {
 			JsonUtils.fromJson("[\"a\":1,\"b\":2]", Dummy.class);
 		}
 		catch (IllegalArgumentException e) {
-			assertEquals("Given JSON could not be deserialized. Error: Can not deserialize instance of com.iddiction.analytics.utils.Dummy out of START_ARRAY token\n"
+			assertEquals("Given JSON could not be deserialized. Error: Can not deserialize instance of com.spikeify.taskqueue.utils.Dummy out of START_ARRAY token\n"
 						 + " at [Source: [\"a\":1,\"b\":2]; line: 1, column: 1]", e.getMessage());
 			throw e;
 		}
@@ -103,7 +103,7 @@ public class JsonUtilsTest {
 			JsonUtils.fromJson("[{\"a\":\"1\",\"b\":2},{\"a\":\"1\",\"b\":2}]", new TypeReference<ArrayList<DummyTo>>() {});
 		}
 		catch (IllegalArgumentException e) {
-			assertEquals("Given JSON could not be deserialized. Error: No suitable constructor found for type [simple type, class com.iddiction.analytics.utils.JsonUtilsTest$DummyTo]: can not instantiate from JSON object (need to add/enable type information?)\n"
+			assertEquals("Given JSON could not be deserialized. Error: No suitable constructor found for type [simple type, class com.spikeify.taskqueue.utils.JsonUtilsTest$DummyTo]: can not instantiate from JSON object (missing default constructor or creator, or perhaps need to add/enable type information?)\n"
 						 + " at [Source: [{\"a\":\"1\",\"b\":2},{\"a\":\"1\",\"b\":2}]; line: 1, column: 3] (through reference chain: java.util.ArrayList[0])",
 						 e.getMessage());
 			throw e;
@@ -156,7 +156,7 @@ public class JsonUtilsTest {
 			JsonUtils.fromJson("[{\"a\":\"1\",\"b\":2},{\"a\":\"1\",\"b\":2}]", new TypeReference<ArrayList<DummyTo>>() {}, custom);
 		}
 		catch (IllegalArgumentException e) {
-			assertEquals("Given JSON could not be deserialized. Error: No suitable constructor found for type [simple type, class com.iddiction.analytics.utils.JsonUtilsTest$DummyTo]: can not instantiate from JSON object (need to add/enable type information?)\n"
+			assertEquals("Given JSON could not be deserialized. Error: No suitable constructor found for type [simple type, class com.spikeify.taskqueue.utils.JsonUtilsTest$DummyTo]: can not instantiate from JSON object (missing default constructor or creator, or perhaps need to add/enable type information?)\n"
 						 + " at [Source: [{\"a\":\"1\",\"b\":2},{\"a\":\"1\",\"b\":2}]; line: 1, column: 3] (through reference chain: java.util.ArrayList[0])", e.getMessage());
 			throw e;
 		}
