@@ -3,9 +3,9 @@ package com.spikeify.taskqueue.entities;
 import com.spikeify.annotations.Generation;
 import com.spikeify.annotations.UserKey;
 import com.spikeify.taskqueue.Task;
-import com.spikeify.taskqueue.TaskPriority;
 import com.spikeify.taskqueue.TaskQueueError;
 import com.spikeify.taskqueue.utils.Assert;
+import com.spikeify.taskqueue.utils.IdGenerator;
 import com.spikeify.taskqueue.utils.JsonUtils;
 
 /**
@@ -20,7 +20,7 @@ public class QueueTask {
 	 * unique key assigned to task when added to queue
 	 */
 	@UserKey
-	private String key;
+	private String id;
 
 	/**
 	 * to JSON string serialized task
@@ -35,22 +35,23 @@ public class QueueTask {
 	/**
 	 * time stamp when task was created/added to the queue
 	 */
-	protected Long created;
+	protected long created;
 
 	/**
 	 * time stamp when task was last updated
 	 */
-	protected Long updated;
-
-	/**
-	 * task execution priority
-	 */
-	protected TaskPriority priority;
+	protected long updated;
 
 	/**
 	 * internal task state ... execution progress
 	 */
 	protected TaskState state;
+
+	/**
+	 * true - locked for other threads, false - open for a executor to execute
+	 */
+	// @Indexed
+	protected boolean locked;
 
 	/**
 	 * count of taks runs 0 - taks was never run, 1 - task was run once, 2 - task was retried once ...
@@ -72,24 +73,14 @@ public class QueueTask {
 	 */
 	public QueueTask(Task job) {
 
-		this(job, TaskPriority.normal);
-	}
-
-	/**
-	 * Creates new queue task entity holding a task to be stored into database
-	 *
-	 * @param job         task to be stored
-	 * @param jobPriority job priority
-	 */
-	public QueueTask(Task job, TaskPriority jobPriority) {
-
 		Assert.notNull(job, "Missing task!");
-		Assert.notNull(jobPriority, "Missing task priority!");
+
+		// generated id ... must check if unique before adding task to queue
+		generateId();
 
 		created = System.currentTimeMillis();
 		updated = created;
 
-		priority = jobPriority;
 		state = TaskState.queued;
 		runCount = 0;
 
@@ -98,9 +89,10 @@ public class QueueTask {
 	}
 
 	/**
-	 * Creates instance of task object from JSON task and className (class name)
+	 * Creates instance of task object from JSON task and className
+	 * (task class must be serializable/deserializable from to JSON string)
 	 *
-	 * @return
+	 * @return Task to be executed ...
 	 */
 	public Task getTask() {
 
@@ -117,12 +109,62 @@ public class QueueTask {
 			return (Task) instance;
 		}
 		catch (IllegalArgumentException e) {
-			// JSON deserializaton problem
+			// JSON deserialization problem
 			throw new TaskQueueError("Deserialization problem: " + e.getMessage());
 		}
 		catch (ClassNotFoundException e) {
 			// class can't be found ...
 			throw new TaskQueueError("Class '" + className + "' not found!", e);
 		}
+	}
+
+	public String getId() {
+
+		return id;
+	}
+
+	/**
+	 * Create new id if needed
+	 * Usefull for task duplication or in case id is duplicated in database
+	 */
+	public void generateId() {
+
+		id = IdGenerator.generateKey();
+	}
+
+	public Long getCreated() {
+
+		return created;
+	}
+
+	public Long getUpdated() {
+
+		return updated;
+	}
+
+	public TaskState getState() {
+
+		return state;
+	}
+
+	public void setState(TaskState newState) {
+
+		if (state.canTransition(newState)) {
+			state = newState;
+
+			locked = TaskState.running.equals(newState) ||
+					 TaskState.finished.equals(newState);
+		}
+	}
+
+	public int getRunCount() {
+
+		return runCount;
+	}
+
+	@Override
+	public String toString() {
+
+		return id + ": " + className + " [" + state + "]";
 	}
 }

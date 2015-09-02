@@ -6,7 +6,7 @@ import java.util.Map;
 public enum TaskState {
 
 	queued,     // task was added to queue
-	started,    // task will be executed by a worker (task is locked for other workers)
+	running,    // task will be executed by a worker (task is locked for other workers)
 	finished,   // task was successfully
 	failed;     // task has failed ... it might be retried if run count was not exceeded (task is unlocked)
 
@@ -16,16 +16,16 @@ public enum TaskState {
 	static {
 		transitionMatrix = new HashMap<>();
 		transitionMatrix.put(null, new TaskState[] {queued});      // add
-		transitionMatrix.put(queued, new TaskState[] {started});   // execute
-		transitionMatrix.put(started, new TaskState[] {finished, failed}); // success or failure
-		transitionMatrix.put(failed, new TaskState[] {started});   // retry
+		transitionMatrix.put(queued, new TaskState[] {running});   // execute
+		transitionMatrix.put(running, new TaskState[] {finished, failed}); // success or failure
+		transitionMatrix.put(failed, new TaskState[] {running});   // retry
 	}
 
-	public boolean canTransition(TaskState from, TaskState to) {
+	public boolean canTransition(TaskState toState) {
 
-		TaskState[] possible = transitionMatrix.get(from);
+		TaskState[] possible = transitionMatrix.get(this);
 		for (TaskState state : possible) {
-			if (state.equals(to)) {
+			if (state.equals(toState)) {
 				return true;
 			}
 		}

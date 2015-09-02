@@ -22,11 +22,14 @@ public class QueueTaskTest {
 		assertTrue(System.currentTimeMillis() >= task.updated);
 
 		assertEquals("com.spikeify.taskqueue.TestTask", task.className);
+		assertEquals(TaskState.queued, task.getState());
+		assertEquals(0, task.getRunCount());
 
+		// deserialize and check
 		Task newJob = task.getTask();
 		assertTrue(newJob instanceof TestTask);
 
-		TestTask testJob = (TestTask)newJob;
+		TestTask testJob = (TestTask) newJob;
 		assertEquals("Hello task!", testJob.getProperty());
 	}
 
@@ -39,8 +42,7 @@ public class QueueTaskTest {
 		// change data of task ...
 		task.className = "com.spikeify.taskqueue.utils.Dummy";
 
-		try
-		{
+		try {
 			task.getTask();
 			assertTrue("Should not get to this point!", false);
 		}
@@ -61,8 +63,7 @@ public class QueueTaskTest {
 		// change data of task ...
 		task.className = "com.spikeify.taskqueue.Dummy";
 
-		try
-		{
+		try {
 			task.getTask();
 			assertTrue("Should not get to this point!", false);
 		}
@@ -83,8 +84,7 @@ public class QueueTaskTest {
 		task.className = "com.spikeify.taskqueue.utils.Dummy";
 		task.task = JsonUtils.toJson(new Dummy("test", 1));
 
-		try
-		{
+		try {
 			task.getTask();
 			assertTrue("Should not get to this point!", false);
 		}
