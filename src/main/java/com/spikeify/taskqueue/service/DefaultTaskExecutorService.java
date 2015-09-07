@@ -4,6 +4,7 @@ import com.spikeify.taskqueue.Task;
 import com.spikeify.taskqueue.TaskContext;
 import com.spikeify.taskqueue.TaskResult;
 import com.spikeify.taskqueue.entities.QueueTask;
+import com.spikeify.taskqueue.entities.TaskResultState;
 import com.spikeify.taskqueue.entities.TaskState;
 import com.spikeify.taskqueue.utils.Assert;
 
@@ -33,6 +34,11 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 
 		QueueTask next = queue.next(queueName);
 
+		if (next == null) {
+			// nothing to do ... queue is empty
+			return null;
+		}
+
 		if (queue.transition(next, TaskState.running)) {
 
 			Task task = next.getTask();
@@ -40,12 +46,14 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 			try {
 				TaskResult result = task.execute(context);
 
-				if (result.isOK()) {
+				if (TaskResultState.ok.equals(result.getState())) {
 					queue.transition(next, TaskState.finished);
 				}
 				else {
 					queue.transition(next, TaskState.failed);
 				}
+
+				return result;
 			}
 			catch (Exception e) {
 				log.log(Level.SEVERE, "Failed to execute task: " + task + ", queue id:" + next.getId(), e);

@@ -31,12 +31,10 @@ public class TestTask implements Task {
 
 		// nothing to do right now ...
 		if (interrupt) {
-		// return new TaskResult.interrupted();
+			return TaskResult.interrupted();
 		}
 
-		// return TaskResult.ok();
-
-		return null;
+		return TaskResult.ok();
 	}
 
 	@Override

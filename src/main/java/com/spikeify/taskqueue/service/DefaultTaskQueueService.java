@@ -52,7 +52,7 @@ public class DefaultTaskQueueService implements TaskQueueService {
 					throw new AerospikeException(3); // keep retrying
 				}
 
-				sfy.create(task);
+				sfy.create(task).now();
 				return task;
 			}
 		});
@@ -89,6 +89,9 @@ public class DefaultTaskQueueService implements TaskQueueService {
 	@Override
 	public boolean transition(QueueTask task, TaskState newState) {
 
+		Assert.notNull(task, "Missing task!");
+		Assert.notNull(newState, "Missing state!");
+
 		try {
 
 			QueueTask updated = sfy.transact(5, new Work<QueueTask>() {
@@ -104,14 +107,17 @@ public class DefaultTaskQueueService implements TaskQueueService {
 						throw new AerospikeException(3); // keep retrying
 					}
 
+					sfy.update(original).now();
+
 					return original;
 				}
 			});
 
-			return !updated.getState().equals(newState);
+			return updated.getState().equals(newState);
 		}
 		catch (ConcurrentModificationException | AerospikeException e) {
 			// task modified by other thread ... transition failed
+			log.info("Could not transition task to: " + newState + ", thread collision!");
 			return false;
 		}
 	}

@@ -24,6 +24,10 @@ public enum TaskState {
 	public boolean canTransition(TaskState toState) {
 
 		TaskState[] possible = transitionMatrix.get(this);
+		if (possible == null) {
+			return false;
+		}
+
 		for (TaskState state : possible) {
 			if (state.equals(toState)) {
 				return true;

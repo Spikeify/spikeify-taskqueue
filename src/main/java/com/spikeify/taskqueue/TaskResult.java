@@ -1,12 +1,48 @@
 package com.spikeify.taskqueue;
 
+import com.spikeify.taskqueue.entities.TaskResultState;
+
 /**
  * Task execution result
  */
-public interface TaskResult {
+public class TaskResult {
 
-	/**
-	 * @return true if result was successful, false if task failed and should be retried
-	 */
-	boolean isOK();
+	// state task was in when finished ...
+	private final TaskResultState state;
+
+	// context to carry around if necessary
+	private final TaskContext context;
+
+	public TaskResult(TaskResultState state) {
+
+		this(state, null);
+	}
+
+	public TaskResult(TaskResultState state, TaskContext context) {
+		this.state = state;
+		this.context = context;
+	}
+
+	public TaskResultState getState() {
+
+		return state;
+	}
+
+	public TaskContext getContext() {
+		return context;
+	}
+
+	// Task result state initializer ... for easier usage
+
+	public static TaskResult ok() {
+		return new TaskResult(TaskResultState.ok);
+	}
+
+	public static TaskResult failed() {
+		return new TaskResult(TaskResultState.failed);
+	}
+
+	public static TaskResult interrupted() {
+		return new TaskResult(TaskResultState.interrupted);
+	}
 }

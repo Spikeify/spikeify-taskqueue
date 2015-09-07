@@ -17,7 +17,7 @@ public class QueueTask {
 	private static final String LOCKED = "LOCKED";
 	private static final String OPEN = "OPEN";
 
-	private int MAX_TASK_RETRIES = 3;
+	private static final int MAX_RETRIES = 3;
 
 	@Generation
 	protected Integer generation;
@@ -97,7 +97,8 @@ public class QueueTask {
 	/**
 	 * Creates new queue task entity holding a task to be stored into database
 	 *
-	 * @param job task to be stored
+	 * @param job       task to be stored
+	 * @param queueName name of queue to put task into
 	 */
 	public QueueTask(Task job, String queueName) {
 
@@ -154,6 +155,9 @@ public class QueueTask {
 		}
 	}
 
+	/**
+	 * @return unique task id
+	 */
 	public String getId() {
 
 		return id;
@@ -168,19 +172,36 @@ public class QueueTask {
 		id = IdGenerator.generateKey();
 	}
 
+	/**
+	 * @return time stamp task was created
+	 */
 	public Long getCreateTime() {
 
 		return createTime;
 	}
 
+	/**
+	 * @return last time task was updated (change of state)
+	 */
 	public Long getUpdateTime() {
 
 		return updateTime;
 	}
 
+	/**
+	 * @return current task state
+	 */
 	public TaskState getState() {
 
 		return state;
+	}
+
+	/**
+	 * @return name of queue task was put in
+	 */
+	public String getQueue() {
+
+		return queue;
 	}
 
 	/**
@@ -210,17 +231,23 @@ public class QueueTask {
 		}
 	}
 
+	/**
+	 * @return number of task executions
+	 */
 	public int getRunCount() {
 
 		return runCount;
 	}
 
+	/**
+	 * @return true if task is locked (can not be modified)
+	 */
 	public boolean isLocked() {
 
 		return TaskState.running.equals(state) ||
 			   TaskState.finished.equals(state) ||
 			   (TaskState.failed.equals(state) &&
-				runCount > MAX_TASK_RETRIES);
+				runCount > MAX_RETRIES);
 	}
 
 	@Override
