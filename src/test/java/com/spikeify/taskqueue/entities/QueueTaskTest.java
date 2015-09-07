@@ -12,18 +12,21 @@ import static org.junit.Assert.assertTrue;
 
 public class QueueTaskTest {
 
+	public static String QUEUE = "test";
+
 	@Test
 	public void createSimpleTask() {
 
 		TestTask job = new TestTask("Hello task!");
-		QueueTask task = new QueueTask(job);
+		QueueTask task = new QueueTask(job, QUEUE);
 
-		assertTrue(System.currentTimeMillis() >= task.created);
-		assertTrue(System.currentTimeMillis() >= task.updated);
+		assertTrue(System.currentTimeMillis() >= task.createTime);
+		assertTrue(System.currentTimeMillis() >= task.updateTime);
 
 		assertEquals("com.spikeify.taskqueue.TestTask", task.className);
 		assertEquals(TaskState.queued, task.getState());
 		assertEquals(0, task.getRunCount());
+		assertEquals(QUEUE, task.queue);
 
 		// deserialize and check
 		Task newJob = task.getTask();
@@ -37,7 +40,7 @@ public class QueueTaskTest {
 	public void invalidClassType() {
 
 		TestTask job = new TestTask("Hello task!");
-		QueueTask task = new QueueTask(job);
+		QueueTask task = new QueueTask(job, QUEUE);
 
 		// change data of task ...
 		task.className = "com.spikeify.taskqueue.utils.Dummy";
@@ -58,7 +61,7 @@ public class QueueTaskTest {
 	public void unknownClassType() {
 
 		TestTask job = new TestTask("Hello task!");
-		QueueTask task = new QueueTask(job);
+		QueueTask task = new QueueTask(job, QUEUE);
 
 		// change data of task ...
 		task.className = "com.spikeify.taskqueue.Dummy";
@@ -78,7 +81,7 @@ public class QueueTaskTest {
 	public void invalidInstanceClassType() {
 
 		TestTask job = new TestTask("Hello task!");
-		QueueTask task = new QueueTask(job);
+		QueueTask task = new QueueTask(job, QUEUE);
 
 		// change data of task ...
 		task.className = "com.spikeify.taskqueue.utils.Dummy";

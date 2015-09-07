@@ -1,6 +1,7 @@
 package com.spikeify.taskqueue.entities;
 
 import com.spikeify.annotations.Generation;
+import com.spikeify.annotations.Indexed;
 import com.spikeify.annotations.UserKey;
 import com.spikeify.taskqueue.Task;
 import com.spikeify.taskqueue.TaskQueueError;
@@ -13,6 +14,11 @@ import com.spikeify.taskqueue.utils.JsonUtils;
  */
 public class QueueTask {
 
+	private static final String LOCKED = "LOCKED";
+	private static final String OPEN = "OPEN";
+
+	private int MAX_TASK_RETRIES = 3;
+
 	@Generation
 	protected Integer generation;
 
@@ -21,6 +27,12 @@ public class QueueTask {
 	 */
 	@UserKey
 	private String id;
+
+	/**
+	 * queue name
+	 */
+	// @Indexed
+	protected String queue;
 
 	/**
 	 * to JSON string serialized task
@@ -35,12 +47,22 @@ public class QueueTask {
 	/**
 	 * time stamp when task was created/added to the queue
 	 */
-	protected long created;
+	protected long createTime;
 
 	/**
 	 * time stamp when task was last updated
 	 */
-	protected long updated;
+	protected long updateTime;
+
+	/**
+	 * time task was started
+	 */
+	protected long startTime;
+
+	/**
+	 * time task finished
+	 */
+	protected long endTime;
 
 	/**
 	 * internal task state ... execution progress
@@ -48,16 +70,22 @@ public class QueueTask {
 	protected TaskState state;
 
 	/**
-	 * true - locked for other threads, false - open for a executor to execute
-	 */
-	// @Indexed
-	protected boolean locked;
-
-	/**
-	 * count of taks runs 0 - taks was never run, 1 - task was run once, 2 - task was retried once ...
+	 * count of taks runs 0 - taks was never run, 1 - task was run once, 2 - run once / and once retried ...
 	 * use in combination with state to determine general task state
 	 */
 	protected int runCount;
+
+	/**
+	 * Joined values of QueueName + TaskState to enable filtering
+	 */
+	@Indexed
+	protected String stateFilter;
+
+	/**
+	 * Joined values of QueueName + locked state to enable filtering
+	 */
+	@Indexed
+	protected String lockedFilter;
 
 	/**
 	 * For Spikeify only
@@ -71,21 +99,29 @@ public class QueueTask {
 	 *
 	 * @param job task to be stored
 	 */
-	public QueueTask(Task job) {
+	public QueueTask(Task job, String queueName) {
 
 		Assert.notNull(job, "Missing task!");
+		Assert.notNull(queueName, "Missing queue name!");
 
 		// generated id ... must check if unique before adding task to queue
 		generateId();
 
-		created = System.currentTimeMillis();
-		updated = created;
+		queue = queueName;
+
+		// initial task state ...
+		createTime = System.currentTimeMillis();
+		updateTime = createTime;
+		startTime = 0;
+		endTime = 0;
 
 		state = TaskState.queued;
 		runCount = 0;
 
 		task = JsonUtils.toJson(job);
 		className = job.getClass().getName();
+
+		updateFilter();
 	}
 
 	/**
@@ -125,21 +161,21 @@ public class QueueTask {
 
 	/**
 	 * Create new id if needed
-	 * Usefull for task duplication or in case id is duplicated in database
+	 * Useful for task duplication or in case id is duplicated in database
 	 */
 	public void generateId() {
 
 		id = IdGenerator.generateKey();
 	}
 
-	public Long getCreated() {
+	public Long getCreateTime() {
 
-		return created;
+		return createTime;
 	}
 
-	public Long getUpdated() {
+	public Long getUpdateTime() {
 
-		return updated;
+		return updateTime;
 	}
 
 	public TaskState getState() {
@@ -147,13 +183,30 @@ public class QueueTask {
 		return state;
 	}
 
+	/**
+	 * Change the tasks state when started, failed of finished
+	 *
+	 * @param newState to put task into. If transition is not possible set is ignored!
+	 */
 	public void setState(TaskState newState) {
 
 		if (state.canTransition(newState)) {
+
+			updateTime = System.currentTimeMillis();
+
+			if (TaskState.running.equals(newState)) {
+				runCount++;
+				startTime = System.currentTimeMillis();
+			}
+
+			if (TaskState.finished.equals(newState) ||
+				TaskState.failed.equals(newState)) {
+				endTime = System.currentTimeMillis();
+			}
+
 			state = newState;
 
-			locked = TaskState.running.equals(newState) ||
-					 TaskState.finished.equals(newState);
+			updateFilter();
 		}
 	}
 
@@ -162,9 +215,54 @@ public class QueueTask {
 		return runCount;
 	}
 
+	public boolean isLocked() {
+
+		return TaskState.running.equals(state) ||
+			   TaskState.finished.equals(state) ||
+			   (TaskState.failed.equals(state) &&
+				runCount > MAX_TASK_RETRIES);
+	}
+
 	@Override
 	public String toString() {
 
 		return id + ": " + className + " [" + state + "]";
+	}
+
+	/**
+	 * Filter is composed of queue name and locked state
+	 * this allows filtering of tasks per queue and state, for instance:
+	 * - get all queued or failed tasks for default queue
+	 * - get all running or finished tasks for "my" queue ...
+	 */
+	protected void updateFilter() {
+
+		lockedFilter = getLockedFilter(queue, isLocked());
+		stateFilter = getStateFilter(queue, state);
+	}
+
+
+	/**
+	 * Utility method to get correct filter for equals filtering searching for open/closed tasks
+	 *
+	 * @param queueName name of queue
+	 * @param locked    state
+	 * @return filter expression
+	 */
+	public static String getLockedFilter(String queueName, boolean locked) {
+
+		return queueName + "::" + (locked ? LOCKED : OPEN);
+	}
+
+	/**
+	 * Utility method to get correct filter for equals filtering searching for task state
+	 *
+	 * @param queueName name of queue
+	 * @param taskState state
+	 * @return filter expression
+	 */
+	public static String getStateFilter(String queueName, TaskState taskState) {
+
+		return queueName + "::" + taskState.name();
 	}
 }
