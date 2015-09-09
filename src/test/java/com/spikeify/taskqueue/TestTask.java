@@ -1,27 +1,27 @@
 package com.spikeify.taskqueue;
 
 /**
- * Test task for unit testing
+ * Test job for unit testing
  */
-public class TestTask implements Task {
+public class TestTask implements Job {
 
-	private String property;
+	private int property;
 	private boolean interrupt;
 
 	protected TestTask() {
 		// for Jackson
 	}
 
-	public TestTask(String value) {
+	public TestTask(int value) {
 		setProperty(value);
 	}
 
-	public String getProperty() {
+	public int getProperty() {
 
 		return property;
 	}
 
-	public void setProperty(String value) {
+	public void setProperty(int value) {
 		property = value;
 	}
 

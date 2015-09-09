@@ -7,7 +7,7 @@ import com.spikeify.taskqueue.entities.TaskResultState;
  */
 public class TaskResult {
 
-	// state task was in when finished ...
+	// state job was in when finished ...
 	private final TaskResultState state;
 
 	// context to carry around if necessary

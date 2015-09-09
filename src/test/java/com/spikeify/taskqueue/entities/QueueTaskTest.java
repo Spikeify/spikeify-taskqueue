@@ -1,6 +1,6 @@
 package com.spikeify.taskqueue.entities;
 
-import com.spikeify.taskqueue.Task;
+import com.spikeify.taskqueue.Job;
 import com.spikeify.taskqueue.TaskQueueError;
 import com.spikeify.taskqueue.TestTask;
 import com.spikeify.taskqueue.utils.Dummy;
@@ -17,7 +17,7 @@ public class QueueTaskTest {
 	@Test
 	public void createSimpleTask() {
 
-		TestTask job = new TestTask("Hello task!");
+		TestTask job = new TestTask(0);
 		QueueTask task = new QueueTask(job, QUEUE);
 
 		assertTrue(System.currentTimeMillis() >= task.createTime);
@@ -29,29 +29,29 @@ public class QueueTaskTest {
 		assertEquals(QUEUE, task.queue);
 
 		// deserialize and check
-		Task newJob = task.getTask();
+		Job newJob = task.getJob();
 		assertTrue(newJob instanceof TestTask);
 
 		TestTask testJob = (TestTask) newJob;
-		assertEquals("Hello task!", testJob.getProperty());
+		assertEquals(0, testJob.getProperty());
 	}
 
 	@Test(expected = TaskQueueError.class)
 	public void invalidClassType() {
 
-		TestTask job = new TestTask("Hello task!");
+		TestTask job = new TestTask(0);
 		QueueTask task = new QueueTask(job, QUEUE);
 
-		// change data of task ...
+		// change data of job ...
 		task.className = "com.spikeify.taskqueue.utils.Dummy";
 
 		try {
-			task.getTask();
+			task.getJob();
 			assertTrue("Should not get to this point!", false);
 		}
 		catch (TaskQueueError e) {
 			assertEquals("Deserialization problem: Given JSON could not be deserialized. Error: Unrecognized field \"property\" (class com.spikeify.taskqueue.utils.Dummy), not marked as ignorable (3 known properties: \"a\", \"b\", \"hidden\"])\n"
-						 + " at [Source: {\"property\":\"Hello task!\"}; line: 1, column: 14] (through reference chain: com.spikeify.taskqueue.utils.Dummy[\"property\"])", e.getMessage());
+						 + " at [Source: {\"property\":0}; line: 1, column: 14] (through reference chain: com.spikeify.taskqueue.utils.Dummy[\"property\"])", e.getMessage());
 
 			throw e;
 		}
@@ -60,14 +60,14 @@ public class QueueTaskTest {
 	@Test(expected = TaskQueueError.class)
 	public void unknownClassType() {
 
-		TestTask job = new TestTask("Hello task!");
+		TestTask job = new TestTask(0);
 		QueueTask task = new QueueTask(job, QUEUE);
 
-		// change data of task ...
+		// change data of job ...
 		task.className = "com.spikeify.taskqueue.Dummy";
 
 		try {
-			task.getTask();
+			task.getJob();
 			assertTrue("Should not get to this point!", false);
 		}
 		catch (TaskQueueError e) {
@@ -80,19 +80,19 @@ public class QueueTaskTest {
 	@Test(expected = TaskQueueError.class)
 	public void invalidInstanceClassType() {
 
-		TestTask job = new TestTask("Hello task!");
+		TestTask job = new TestTask(0);
 		QueueTask task = new QueueTask(job, QUEUE);
 
-		// change data of task ...
+		// change data of job ...
 		task.className = "com.spikeify.taskqueue.utils.Dummy";
-		task.task = JsonUtils.toJson(new Dummy("test", 1));
+		task.job = JsonUtils.toJson(new Dummy("test", 1));
 
 		try {
-			task.getTask();
+			task.getJob();
 			assertTrue("Should not get to this point!", false);
 		}
 		catch (TaskQueueError e) {
-			assertEquals("Class 'com.spikeify.taskqueue.utils.Dummy' must derive from 'com.spikeify.taskqueue.Task'!", e.getMessage());
+			assertEquals("Class 'com.spikeify.taskqueue.utils.Dummy' must derive from 'com.spikeify.taskqueue.Job'!", e.getMessage());
 
 			throw e;
 		}

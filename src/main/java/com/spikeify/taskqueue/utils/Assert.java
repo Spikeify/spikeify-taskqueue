@@ -12,7 +12,17 @@ public final class Assert {
 
 	public static void notNull(Object test, String message) {
 
-		if (test == null) {
+		isFalse(test == null, message);
+	}
+
+	public static void isTrue(boolean condition, String message) {
+		if (!condition) {
+			throw new TaskQueueError(message);
+		}
+	}
+
+	public static void isFalse(boolean condition, String message) {
+		if (condition) {
 			throw new TaskQueueError(message);
 		}
 	}

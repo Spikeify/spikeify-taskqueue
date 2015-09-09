@@ -17,8 +17,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <version.aerospike>3.1.4</version.aerospike>
-        <version.spikeify>0.2.1</version.spikeify>
-        <version.fasterxml.jackson>[2.5,2.6)</version.fasterxml.jackson>
+        <version.spikeify>0.2.2</version.spikeify>
+        <version.fasterxml.jackson>[2.6,2.7)</version.fasterxml.jackson>
 
         <version.junit>4.12</version.junit>
         <version.mockito-all>1.10.8</version.mockito-all>
@@ -99,15 +99,6 @@
             <version>${version.mockito-all}</version>
             <scope>test</scope>
         </dependency>
-
-        <!-- multithreading test -->
-        <dependency>
-            <groupId>com.jayway.awaitility</groupId>
-            <artifactId>awaitility</artifactId>
-            <version>1.6.3</version>
-            <scope>test</scope>
-        </dependency>
-
 
     </dependencies>
 

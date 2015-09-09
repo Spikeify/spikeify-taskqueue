@@ -3,7 +3,7 @@ package com.spikeify.taskqueue.entities;
 import com.spikeify.annotations.Generation;
 import com.spikeify.annotations.Indexed;
 import com.spikeify.annotations.UserKey;
-import com.spikeify.taskqueue.Task;
+import com.spikeify.taskqueue.Job;
 import com.spikeify.taskqueue.TaskQueueError;
 import com.spikeify.taskqueue.utils.Assert;
 import com.spikeify.taskqueue.utils.IdGenerator;
@@ -37,7 +37,7 @@ public class QueueTask {
 	/**
 	 * to JSON string serialized task
 	 */
-	protected String task;
+	protected String job;
 
 	/**
 	 * java class name
@@ -79,13 +79,13 @@ public class QueueTask {
 	 * Joined values of QueueName + TaskState to enable filtering
 	 */
 	@Indexed
-	protected String stateFilter;
+	public String stateFilter; // set to private later
 
 	/**
 	 * Joined values of QueueName + locked state to enable filtering
 	 */
 	@Indexed
-	protected String lockedFilter;
+	public String lockFilter; // set to private
 
 	/**
 	 * For Spikeify only
@@ -97,12 +97,12 @@ public class QueueTask {
 	/**
 	 * Creates new queue task entity holding a task to be stored into database
 	 *
-	 * @param job       task to be stored
+	 * @param newJob    task to be stored
 	 * @param queueName name of queue to put task into
 	 */
-	public QueueTask(Task job, String queueName) {
+	public QueueTask(Job newJob, String queueName) {
 
-		Assert.notNull(job, "Missing task!");
+		Assert.notNull(newJob, "Missing task!");
 		Assert.notNull(queueName, "Missing queue name!");
 
 		// generated id ... must check if unique before adding task to queue
@@ -119,8 +119,8 @@ public class QueueTask {
 		state = TaskState.queued;
 		runCount = 0;
 
-		task = JsonUtils.toJson(job);
-		className = job.getClass().getName();
+		job = JsonUtils.toJson(newJob);
+		className = newJob.getClass().getName();
 
 		updateFilter();
 	}
@@ -131,19 +131,19 @@ public class QueueTask {
 	 *
 	 * @return Task to be executed ...
 	 */
-	public Task getTask() {
+	public Job getJob() {
 
 		try {
 			Class clazz = this.getClass().getClassLoader().loadClass(className);
-			Object instance = JsonUtils.fromJson(task, clazz);
+			Object instance = JsonUtils.fromJson(job, clazz);
 
 			// check type
-			if (!(instance instanceof Task)) {
+			if (!(instance instanceof Job)) {
 				// this is not a "Task" ... so execution would be impossible
-				throw new TaskQueueError("Class '" + clazz.getName() + "' must derive from '" + Task.class.getName() + "'!");
+				throw new TaskQueueError("Class '" + clazz.getName() + "' must derive from '" + Job.class.getName() + "'!");
 			}
 
-			return (Task) instance;
+			return (Job) instance;
 		}
 		catch (IllegalArgumentException e) {
 			// JSON deserialization problem
@@ -264,7 +264,7 @@ public class QueueTask {
 	 */
 	protected void updateFilter() {
 
-		lockedFilter = getLockedFilter(queue, isLocked());
+		lockFilter = getLockedFilter(queue, isLocked());
 		stateFilter = getStateFilter(queue, state);
 	}
 
