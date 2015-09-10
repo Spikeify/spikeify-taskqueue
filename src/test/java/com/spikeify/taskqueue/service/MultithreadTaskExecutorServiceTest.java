@@ -3,7 +3,6 @@ package com.spikeify.taskqueue.service;
 import com.spikeify.Spikeify;
 import com.spikeify.taskqueue.*;
 import com.spikeify.taskqueue.entities.QueueTask;
-import com.spikeify.taskqueue.entities.TaskResultState;
 import com.spikeify.taskqueue.entities.TaskState;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,7 +10,6 @@ import org.junit.Test;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
@@ -35,8 +33,8 @@ public class MultithreadTaskExecutorServiceTest {
 	@Test
 	public void runSingleExecutor() {
 
+		AtomicInteger completed = new AtomicInteger(0);
 		AtomicInteger failed = new AtomicInteger(0);
-		AtomicBoolean finished = new AtomicBoolean(false);
 
 		DefaultTaskQueueService service = new DefaultTaskQueueService(spikeify);
 		DefaultTaskExecutorService executor = new DefaultTaskExecutorService(service, QUEUE);
@@ -49,14 +47,16 @@ public class MultithreadTaskExecutorServiceTest {
 			service.add(dummy, QUEUE);
 		}
 
-		int count = execute(executor, 1, failed);
+		int count = execute(executor, 1, completed, failed);
 		assertEquals(NUMBER_OF_JOBS, count);
+		assertEquals(NUMBER_OF_JOBS, completed.get());
+		assertEquals(0, failed.get());
 	}
 
 	@Test
 	public void runMultipleExecutors() throws Exception {
 
-		AtomicInteger count = new AtomicInteger(0);
+		AtomicInteger completed = new AtomicInteger(0);
 		AtomicInteger failed = new AtomicInteger(0);
 
 		int NUMBER_OF_JOBS = 100;
@@ -82,7 +82,7 @@ public class MultithreadTaskExecutorServiceTest {
 				public void run() {
 
 					TaskExecutorService worker = new DefaultTaskExecutorService(service, QUEUE);
-					workCompleted[index] = execute(worker, index, failed);
+					workCompleted[index] = execute(worker, index, completed, failed);
 				}
 			};
 
@@ -96,13 +96,16 @@ public class MultithreadTaskExecutorServiceTest {
 			threads[i].join();
 		}
 
+		//await().untilTrue(new AtomicBoolean(completed.get() >= NUMBER_OF_JOBS));
+
+		log.info("Jobs failed: " + failed.get());
+
 		int total = 0;
 		for (int i = 0; i < WORKERS; i++) {
 
-			log.info("Jobs failed: " + failed.get());
 		//	assertTrue("To little work for worker [" + i + "], completed: " + workCompleted[i] + " job(s)", workCompleted[i] > 300); //  each worker should complete aprox. 1/3 of the workload
 			total = total + workCompleted[i];
-
+			log.info("Worker [" + i + "], FINISHED: " + workCompleted[i] + " job(s)");
 		}
 		// number of completed jobs should be same as number given jobs
 		assertEquals(NUMBER_OF_JOBS, total);
@@ -111,6 +114,7 @@ public class MultithreadTaskExecutorServiceTest {
 	@Test
 	public void runMoreWorkersThanJobs() throws Exception {
 
+		AtomicInteger completed = new AtomicInteger(0);
 		AtomicInteger failed = new AtomicInteger(0);
 
 		int NUMBER_OF_JOBS = 10;
@@ -136,7 +140,7 @@ public class MultithreadTaskExecutorServiceTest {
 				public void run() {
 
 					TaskExecutorService worker = new DefaultTaskExecutorService(service, QUEUE);
-					workCompleted[index] = execute(worker, index, failed);
+					workCompleted[index] = execute(worker, index, completed, failed);
 				}
 			};
 
@@ -150,6 +154,8 @@ public class MultithreadTaskExecutorServiceTest {
 			threads[i].join();
 		}
 
+		//await().untilTrue(new AtomicBoolean(completed.get() >= NUMBER_OF_JOBS));
+
 		log.info("Jobs failed: " + failed.get());
 
 		int total = 0;
@@ -157,6 +163,7 @@ public class MultithreadTaskExecutorServiceTest {
 
 			// assertTrue("To much work for worker: " + i + ", completed" + workCompleted[i] + " job(s) completed!", workCompleted[i] > 300); //  each worker should complete aprox. 1/3 of the workload
 			total = total + workCompleted[i];
+			log.info("Worker [" + i + "], FINISHED: " + workCompleted[i] + " job(s)");
 		}
 		// number of completed jobs should be same as number given jobs
 		assertEquals(NUMBER_OF_JOBS, total);
@@ -170,7 +177,7 @@ public class MultithreadTaskExecutorServiceTest {
 	@Test
 	public void retryFailedTasksTest() throws InterruptedException {
 
-		AtomicInteger count = new AtomicInteger(0);
+		AtomicInteger completed = new AtomicInteger(0);
 		AtomicInteger failed = new AtomicInteger(0);
 		// add tasks to queue
 		int NUMBER_OF_JOBS = 200;
@@ -195,7 +202,7 @@ public class MultithreadTaskExecutorServiceTest {
 				public void run() {
 
 					TaskExecutorService worker = new DefaultTaskExecutorService(service, QUEUE);
-					workCompleted[index] = execute(worker, index, failed);
+					workCompleted[index] = execute(worker, index, completed, failed);
 				}
 			};
 
@@ -209,11 +216,14 @@ public class MultithreadTaskExecutorServiceTest {
 			threads[i].join();
 		}
 
+		//await().untilTrue(new AtomicBoolean(completed.get() >= NUMBER_OF_JOBS));
+
 		int total = 0;
 		for (int i = 0; i < WORKERS; i++) {
 
 		//	assertTrue("To little work for worker [" + i + "] has " + workCompleted[i] + " job(s) completed!", workCompleted[i] > 20); //  each worker should complete aprox. 1/3 of the workload
 			total = total + workCompleted[i];
+			log.info("Worker [" + i + "], FINISHED: " + workCompleted[i] + " job(s)");
 		}
 
 		// checked failed tasks
@@ -235,17 +245,21 @@ public class MultithreadTaskExecutorServiceTest {
 	public void purgeFinishedTasksTest() {
 
 		AtomicInteger failed = new AtomicInteger(0);
+		AtomicInteger completed = new AtomicInteger(0);
 
 		DefaultTaskQueueService service = new DefaultTaskQueueService(spikeify);
 		DefaultTaskExecutorService executor = new DefaultTaskExecutorService(service, QUEUE);
 
 		// add tasks to queue
-		for (int i = 0; i < 10; i++) {
+		int NUMBER_OF_JOBS = 10;
+		for (int i = 0; i < NUMBER_OF_JOBS; i++) {
 			Job dummy = new TestTask(i);
 			service.add(dummy, QUEUE);
 		}
 
-		execute(executor, 1, failed);
+		execute(executor, 1, completed, failed);
+
+		//await().untilTrue(new AtomicBoolean(completed.get() >= NUMBER_OF_JOBS));
 
 		// check ... 10 finished tasks should be present
 		List<QueueTask> list = spikeify.scanAll(QueueTask.class).now();
@@ -269,11 +283,11 @@ public class MultithreadTaskExecutorServiceTest {
 		assertEquals(0, list.size());
 	}
 
-	private int execute(TaskExecutorService service, int index, AtomicInteger failed) {
+	private int execute(TaskExecutorService service, int index, AtomicInteger completed, AtomicInteger failed) {
 
-		AtomicInteger completedJobs = new AtomicInteger(0);
+		int completedJobs = 0;
 
-		log.info("Worker [" + index + "], STARTED!");
+	//	log.info("Worker [" + index + "], STARTED!");
 		// repeat thread until finished ...
 		TaskResult result;
 		do {
@@ -282,18 +296,21 @@ public class MultithreadTaskExecutorServiceTest {
 			result = service.execute(new TestTaskContext());
 
 			// count finished jobs by this worker only
-			if (result != null &&
-				TaskResultState.ok.equals(result.getState())) {
-				completedJobs.incrementAndGet();
-			}
-			else if (result != null) {
-				// log.info("Worker: " + index + ", job FAILED ... retrying!");
-				failed.incrementAndGet();
+			if (result != null)
+			{
+				switch (result.getState()) {
+					case ok:
+						completed.incrementAndGet();
+						completedJobs ++;
+						break;
+
+					case failed:
+						failed.incrementAndGet();
+						break;
+				}
 			}
 		}
 		while (result != null);
-
-		log.info("Worker [" + index + "], FINISHED: " + completedJobs.get() + " job(s)");
-		return completedJobs.get();
+		return completedJobs;
 	}
 }

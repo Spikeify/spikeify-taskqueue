@@ -179,14 +179,7 @@ public class DefaultTaskQueueService implements TaskQueueService {
 			return false;
 		}
 	}
-
-	private void checkLocked(boolean isLocked, boolean shouldBeLocked) {
-
-		if (isLocked != shouldBeLocked) {
-			throw new AerospikeException(3); // retry
-		}
-	}
-
+	
 	/**
 	 * Removes job from queue
 	 *

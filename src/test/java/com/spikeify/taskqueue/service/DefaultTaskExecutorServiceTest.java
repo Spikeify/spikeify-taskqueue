@@ -51,7 +51,7 @@ public class DefaultTaskExecutorServiceTest {
 		assertNull(result);
 
 		// 3rd one collides with job in finished state
-		service3.execute(null);
+		result = service3.execute(null);
 		assertNull(result);
 	}
 }
