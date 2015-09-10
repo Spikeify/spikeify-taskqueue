@@ -13,8 +13,8 @@ import com.spikeify.taskqueue.utils.Assert;
 import com.spikeify.taskqueue.utils.StringUtils;
 
 import java.util.ConcurrentModificationException;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -23,6 +23,7 @@ public class DefaultTaskQueueService implements TaskQueueService {
 	private static final Logger log = Logger.getLogger(DefaultTaskQueueService.class.getSimpleName());
 
 	private static final String DEFAULT_QUEUE_NAME = "default";
+	private static final int CHOOSE_NEXT_TASK_RETRIES = 10;
 
 	private final Spikeify sfy;
 	private final int workers; // number of workers
@@ -86,44 +87,39 @@ public class DefaultTaskQueueService implements TaskQueueService {
 			queueName = DEFAULT_QUEUE_NAME;
 		}
 
+		// note: query can return task that are not open anymore ... so choosing random task is ensures that tasks are distributed more or less evenly among workers
 		ResultSet<QueueTask> openTasks = sfy.query(QueueTask.class)
 											.filter("lockFilter", QueueTask.getLockedFilter(queueName, false))
 											.now();
 
-		Iterator<QueueTask> iterator = openTasks.iterator();
-		return iterator.hasNext() ? iterator.next() : null;
+		// Choose random job ... not the first one
+		List<QueueTask> list = openTasks.toList();
 
-		/*// Choose random job ... not the first one
-		int idx;
+		if (list.size() == 0) {
+			return null;
+		}
 
-		if (workers > 1) {
+		int size = Math.min(10, list.size()); // 10 or less random from list
+		QueueTask proposed = null;
+
+		// try to find open task ...
+		for (int i = 1; i <= CHOOSE_NEXT_TASK_RETRIES; i++) {
 			Random rand = new Random();
-			idx = rand.nextInt(workers);
-		}
-		else {
-			idx = 0;
-		}
+			int idx = rand.nextInt(size);
 
-		// go and find job
-		Iterator<QueueTask> iterator = openTasks.iterator();
-		int count = 0;
-		QueueTask item = null;
+			proposed = list.get(idx);
+			QueueTask task = sfy.get(QueueTask.class).key(proposed.getId()).now();
 
-		while (iterator.hasNext()) {
-
-			item = iterator.next();
-			if (count == idx) {
-				return item;
+			// check if task has not been altered by other queue
+			if (!task.isLocked()) {
+				return task;
 			}
 
-			count++;
+			size = Math.min(10 * i, list.size()); // make random choice wider
 		}
 
-		// close iteration
-		openTasks.close();
-
-		// last one or null ...
-		return item;*/
+		// last resort ... (don't return null as null is the signal that there are no new tasks)
+		return proposed;
 	}
 
 	@Override
@@ -179,7 +175,7 @@ public class DefaultTaskQueueService implements TaskQueueService {
 			return false;
 		}
 	}
-	
+
 	/**
 	 * Removes job from queue
 	 *

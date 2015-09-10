@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class MultithreadTaskExecutorServiceTest {
 
@@ -47,7 +48,7 @@ public class MultithreadTaskExecutorServiceTest {
 			service.add(dummy, QUEUE);
 		}
 
-		int count = execute(executor, 1, completed, failed);
+		int count = execute(executor, completed, failed);
 		assertEquals(NUMBER_OF_JOBS, count);
 		assertEquals(NUMBER_OF_JOBS, completed.get());
 		assertEquals(0, failed.get());
@@ -59,7 +60,7 @@ public class MultithreadTaskExecutorServiceTest {
 		AtomicInteger completed = new AtomicInteger(0);
 		AtomicInteger failed = new AtomicInteger(0);
 
-		int NUMBER_OF_JOBS = 100;
+		int NUMBER_OF_JOBS = 500;
 		int WORKERS = 3;
 
 		DefaultTaskQueueService service = new DefaultTaskQueueService(spikeify, WORKERS);
@@ -82,7 +83,7 @@ public class MultithreadTaskExecutorServiceTest {
 				public void run() {
 
 					TaskExecutorService worker = new DefaultTaskExecutorService(service, QUEUE);
-					workCompleted[index] = execute(worker, index, completed, failed);
+					workCompleted[index] = execute(worker, completed, failed);
 				}
 			};
 
@@ -103,10 +104,15 @@ public class MultithreadTaskExecutorServiceTest {
 		int total = 0;
 		for (int i = 0; i < WORKERS; i++) {
 
-		//	assertTrue("To little work for worker [" + i + "], completed: " + workCompleted[i] + " job(s)", workCompleted[i] > 300); //  each worker should complete aprox. 1/3 of the workload
 			total = total + workCompleted[i];
 			log.info("Worker [" + i + "], FINISHED: " + workCompleted[i] + " job(s)");
 		}
+
+		// check if work was distributed evenly
+		for (int i = 0; i < WORKERS; i++) {
+			assertTrue("To little work for worker [" + i + "], completed: " + workCompleted[i] + " job(s)", workCompleted[i] > 150); //  each worker should complete aprox. 1/3 of the workload
+		}
+
 		// number of completed jobs should be same as number given jobs
 		assertEquals(NUMBER_OF_JOBS, total);
 	}
@@ -140,7 +146,7 @@ public class MultithreadTaskExecutorServiceTest {
 				public void run() {
 
 					TaskExecutorService worker = new DefaultTaskExecutorService(service, QUEUE);
-					workCompleted[index] = execute(worker, index, completed, failed);
+					workCompleted[index] = execute(worker, completed, failed);
 				}
 			};
 
@@ -161,7 +167,6 @@ public class MultithreadTaskExecutorServiceTest {
 		int total = 0;
 		for (int i = 0; i < WORKERS; i++) {
 
-			// assertTrue("To much work for worker: " + i + ", completed" + workCompleted[i] + " job(s) completed!", workCompleted[i] > 300); //  each worker should complete aprox. 1/3 of the workload
 			total = total + workCompleted[i];
 			log.info("Worker [" + i + "], FINISHED: " + workCompleted[i] + " job(s)");
 		}
@@ -202,7 +207,7 @@ public class MultithreadTaskExecutorServiceTest {
 				public void run() {
 
 					TaskExecutorService worker = new DefaultTaskExecutorService(service, QUEUE);
-					workCompleted[index] = execute(worker, index, completed, failed);
+					workCompleted[index] = execute(worker, completed, failed);
 				}
 			};
 
@@ -216,14 +221,16 @@ public class MultithreadTaskExecutorServiceTest {
 			threads[i].join();
 		}
 
-		//await().untilTrue(new AtomicBoolean(completed.get() >= NUMBER_OF_JOBS));
-
 		int total = 0;
 		for (int i = 0; i < WORKERS; i++) {
 
-		//	assertTrue("To little work for worker [" + i + "] has " + workCompleted[i] + " job(s) completed!", workCompleted[i] > 20); //  each worker should complete aprox. 1/3 of the workload
 			total = total + workCompleted[i];
 			log.info("Worker [" + i + "], FINISHED: " + workCompleted[i] + " job(s)");
+		}
+
+		// check if work was distributed evenly
+		for (int i = 0; i < WORKERS; i++) {
+			assertTrue("To little work for worker [" + i + "], completed: " + workCompleted[i] + " job(s)", workCompleted[i] > 20); //  each worker should complete aprox. 1/3 of the workload
 		}
 
 		// checked failed tasks
@@ -235,7 +242,7 @@ public class MultithreadTaskExecutorServiceTest {
 			}
 		}
 
-		//assertTrue("Failed and run count are not equal, failed: " + failed.get() + ", reruns: " + runCount, failed.get() == runCount);
+		assertTrue("Failed and rerun count are not equal, failed: " + failed.get() + ", reruns: " + runCount, failed.get() == runCount);
 
 		// number of completed jobs should be same as number given jobs
 		assertEquals(NUMBER_OF_JOBS, total);
@@ -257,7 +264,7 @@ public class MultithreadTaskExecutorServiceTest {
 			service.add(dummy, QUEUE);
 		}
 
-		execute(executor, 1, completed, failed);
+		execute(executor, completed, failed);
 
 		//await().untilTrue(new AtomicBoolean(completed.get() >= NUMBER_OF_JOBS));
 
@@ -283,12 +290,10 @@ public class MultithreadTaskExecutorServiceTest {
 		assertEquals(0, list.size());
 	}
 
-	private int execute(TaskExecutorService service, int index, AtomicInteger completed, AtomicInteger failed) {
+	private int execute(TaskExecutorService service, AtomicInteger completed, AtomicInteger failed) {
 
 		int completedJobs = 0;
 
-	//	log.info("Worker [" + index + "], STARTED!");
-		// repeat thread until finished ...
 		TaskResult result;
 		do {
 

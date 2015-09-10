@@ -211,24 +211,25 @@ public class QueueTask {
 	 */
 	public void setState(TaskState newState) {
 
-		if (state.canTransition(newState)) {
-
-			updateTime = System.currentTimeMillis();
-
-			if (TaskState.running.equals(newState)) {
-				runCount++;
-				startTime = System.currentTimeMillis();
-			}
-
-			if (TaskState.finished.equals(newState) ||
-				TaskState.failed.equals(newState)) {
-				endTime = System.currentTimeMillis();
-			}
-
-			state = newState;
-
-			updateFilter();
+		if (!state.canTransition(newState)) {
+			throw new TaskQueueError("Can't transition from: " + state + " to: " + newState);
 		}
+
+		updateTime = System.currentTimeMillis();
+
+		if (TaskState.running.equals(newState)) {
+			runCount++;
+			startTime = System.currentTimeMillis();
+		}
+
+		if (TaskState.finished.equals(newState) ||
+			TaskState.failed.equals(newState)) {
+			endTime = System.currentTimeMillis();
+		}
+
+		state = newState;
+
+		updateFilter();
 	}
 
 	/**
