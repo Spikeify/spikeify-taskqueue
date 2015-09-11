@@ -1,5 +1,7 @@
 package com.spikeify.taskqueue.entities;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.spikeify.annotations.Generation;
 import com.spikeify.annotations.Indexed;
 import com.spikeify.annotations.UserKey;
@@ -18,6 +20,12 @@ public class QueueTask {
 	private static final String OPEN = "OPEN";
 
 	private static final int MAX_RETRIES = 3;
+
+	private static final ObjectMapper jsonMapper = JsonUtils.getObjectMapper();
+
+	static {
+		jsonMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+	}
 
 	@Generation
 	protected Integer generation;
@@ -119,7 +127,7 @@ public class QueueTask {
 		state = TaskState.queued;
 		runCount = 0;
 
-		job = JsonUtils.toJson(newJob);
+		job = JsonUtils.toJson(newJob, jsonMapper);
 		className = newJob.getClass().getName();
 
 		updateFilter();
@@ -135,7 +143,8 @@ public class QueueTask {
 
 		try {
 			Class clazz = this.getClass().getClassLoader().loadClass(className);
-			Object instance = JsonUtils.fromJson(job, clazz);
+
+			Object instance = JsonUtils.fromJson(job, clazz, jsonMapper);
 
 			// check type
 			if (!(instance instanceof Job)) {
@@ -215,20 +224,25 @@ public class QueueTask {
 			throw new TaskQueueError("Can't transition from: " + state + " to: " + newState);
 		}
 
+		// log last update
 		updateTime = System.currentTimeMillis();
 
+		// log start time and increase run attempts
 		if (TaskState.running.equals(newState)) {
-			runCount++;
 			startTime = System.currentTimeMillis();
+			runCount++;
 		}
 
+		// log end time
 		if (TaskState.finished.equals(newState) ||
 			TaskState.failed.equals(newState)) {
 			endTime = System.currentTimeMillis();
 		}
 
+		// set state
 		state = newState;
 
+		// update filtering
 		updateFilter();
 	}
 
@@ -247,8 +261,13 @@ public class QueueTask {
 
 		return TaskState.running.equals(state) ||
 			   TaskState.finished.equals(state) ||
-			   (TaskState.failed.equals(state) &&
-				runCount > MAX_RETRIES);
+			   (TaskState.failed.equals(state) && runCount >= MAX_RETRIES);
+	}
+
+
+	public Integer getGeneration() {
+
+		return generation;
 	}
 
 	@Override
@@ -256,6 +275,7 @@ public class QueueTask {
 
 		return id + ": " + className + " [" + state + "]";
 	}
+
 
 	/**
 	 * Filter is composed of queue name and locked state
@@ -268,7 +288,6 @@ public class QueueTask {
 		lockFilter = getLockedFilter(queue, isLocked());
 		stateFilter = getStateFilter(queue, state);
 	}
-
 
 	/**
 	 * Utility method to get correct filter for equals filtering searching for open/closed tasks

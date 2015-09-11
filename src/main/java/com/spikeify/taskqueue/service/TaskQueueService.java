@@ -19,7 +19,7 @@ public interface TaskQueueService {
 	QueueTask add(Job job, String queueName);
 
 	/**
-	 * Gets next job to be executed
+	 * Gets next job to be executed (put in running state)
 	 * @return job to be executed or null if no job found
 	 */
 	QueueTask next(String queueName);
@@ -39,9 +39,9 @@ public interface TaskQueueService {
 	 *
 	 * @param task to transition state
 	 * @param state to transition to
-	 * @return true if transition successed, false if job could not be transitioned
+	 * @return updated task if transition successed, false if job could not be transitioned
 	 */
-	boolean transition(QueueTask task, TaskState state);
+	QueueTask transition(QueueTask task, TaskState state);
 
 	/**
 	 * Removes job from database

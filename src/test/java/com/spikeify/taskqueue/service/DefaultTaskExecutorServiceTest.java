@@ -1,11 +1,7 @@
 package com.spikeify.taskqueue.service;
 
 import com.spikeify.Spikeify;
-import com.spikeify.taskqueue.Job;
-import com.spikeify.taskqueue.TaskResult;
-import com.spikeify.taskqueue.TestHelper;
-import com.spikeify.taskqueue.TestTask;
-import com.spikeify.taskqueue.entities.QueueTask;
+import com.spikeify.taskqueue.*;
 import com.spikeify.taskqueue.entities.TaskResultState;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,13 +20,13 @@ public class DefaultTaskExecutorServiceTest {
 	public void setUp() {
 
 		spikeify = TestHelper.getSpikeify();
-		spikeify.truncateSet(QueueTask.class);
+		spikeify.truncateNamespace("test");
 	}
 
 	@Test
 	public void testContentionOnTask() throws Exception {
 
-		TaskQueueService queueService = new DefaultTaskQueueService(spikeify, 10);
+		TaskQueueService queueService = new DefaultTaskQueueService(spikeify);
 		TaskQueueService spiedQueueService = Mockito.spy(queueService);
 
 		TaskExecutorService service1 = new DefaultTaskExecutorService(spiedQueueService, QUEUE);
@@ -39,8 +35,7 @@ public class DefaultTaskExecutorServiceTest {
 
 		Job job = new TestTask(0);
 
-		QueueTask task = queueService.add(job, QUEUE);
-		Mockito.when(spiedQueueService.next(QUEUE)).thenReturn(task); // same job is returned for all services
+		queueService.add(job, QUEUE);
 
 		// 1st one executes the job
 		TaskResult result = service1.execute(null);
@@ -52,6 +47,32 @@ public class DefaultTaskExecutorServiceTest {
 
 		// 3rd one collides with job in finished state
 		result = service3.execute(null);
+		assertNull(result);
+	}
+
+	@Test
+	public void testMaxRetriesOnFailingTask() {
+
+		TaskQueueService queueService = new DefaultTaskQueueService(spikeify);
+		TaskQueueService spiedQueueService = Mockito.spy(queueService);
+
+		TaskExecutorService service = new DefaultTaskExecutorService(spiedQueueService, QUEUE);
+
+		Job job = new FailOnlyTask();
+		queueService.add(job, QUEUE);
+
+		// 1st one executes the job
+		TaskResult result = service.execute(null);
+		assertEquals(TaskResultState.failed, result.getState());
+
+		result = service.execute(null);
+		assertEquals(TaskResultState.failed, result.getState());
+
+		result = service.execute(null);
+		assertEquals(TaskResultState.failed, result.getState());
+
+		// no task should be present 3times retried tasks are locked for execution
+		result = service.execute(null);
 		assertNull(result);
 	}
 }

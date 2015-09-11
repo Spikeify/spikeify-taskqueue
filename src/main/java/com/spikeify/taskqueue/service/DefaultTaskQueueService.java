@@ -10,11 +10,10 @@ import com.spikeify.taskqueue.TaskQueueError;
 import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskState;
 import com.spikeify.taskqueue.utils.Assert;
+import com.spikeify.taskqueue.utils.IdGenerator;
 import com.spikeify.taskqueue.utils.StringUtils;
 
-import java.util.ConcurrentModificationException;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,25 +21,35 @@ public class DefaultTaskQueueService implements TaskQueueService {
 
 	private static final Logger log = Logger.getLogger(DefaultTaskQueueService.class.getSimpleName());
 
-	private static final String DEFAULT_QUEUE_NAME = "default";
+	/**
+	 * default queue name if no queue name was given
+	 */
+	public static final String DEFAULT_QUEUE_NAME = "default";
+
+	/**
+	 * number of retries when choosing next taks and task is already taken (by other thread)
+	 */
 	private static final int CHOOSE_NEXT_TASK_RETRIES = 10;
 
+	/**
+	 * number of items to take into consideration from top of the list when choosing next task
+	 */
+	private static final int MAX_TOP_ITEMS = 5;
+
 	private final Spikeify sfy;
-	private final int workers; // number of workers
+
+	// unique executor id
+	private final String executorId;
 
 	public DefaultTaskQueueService(Spikeify spikeify) {
 
-		this(spikeify, 1);
-	}
-
-	public DefaultTaskQueueService(Spikeify spikeify, int numberOfWorkers) {
-
 		sfy = spikeify;
+
 		// create indexes if not already present ...
 		SpikeifyService.register(QueueTask.class);
 
-		Assert.isTrue(numberOfWorkers > 0, "Number of workers must be > 0!");
-		workers = numberOfWorkers;
+		// generate executor (thread id) - should be unique
+		executorId = IdGenerator.generate(5) + "_" + System.currentTimeMillis();
 	}
 
 	@Override
@@ -75,7 +84,9 @@ public class DefaultTaskQueueService implements TaskQueueService {
 	}
 
 	/**
-	 * Returns next open job ... might be that in the mean time some other thread will lock this job ... so multiple calls to this method are possible
+	 * Returns next open and put's it into running state
+	 * ... might be that in the mean time some other thread will try lock this job
+	 * ... so multiple calls to this method are possible
 	 *
 	 * @param queueName name of queue
 	 * @return found job or null if none found
@@ -94,12 +105,20 @@ public class DefaultTaskQueueService implements TaskQueueService {
 
 		// Choose random job ... not the first one
 		List<QueueTask> list = openTasks.toList();
-
 		if (list.size() == 0) {
 			return null;
 		}
 
-		int size = Math.min(10, list.size()); // 10 or less random from list
+		// sort by updateTime ... the older task are on top ...
+		Collections.sort(list, new Comparator<QueueTask>() {
+			@Override
+			public int compare(QueueTask o1, QueueTask o2) {
+
+				return o1.getUpdateTime().compareTo(o2.getUpdateTime());
+			}
+		});
+
+		int size = Math.min(MAX_TOP_ITEMS, list.size()); // 10 or less random from list
 		QueueTask proposed = null;
 
 		// try to find open task ...
@@ -107,12 +126,10 @@ public class DefaultTaskQueueService implements TaskQueueService {
 			Random rand = new Random();
 			int idx = rand.nextInt(size);
 
-			proposed = list.get(idx);
-			QueueTask task = sfy.get(QueueTask.class).key(proposed.getId()).now();
+			proposed = (transition(list.get(idx), TaskState.running));
 
-			// check if task has not been altered by other queue
-			if (!task.isLocked()) {
-				return task;
+			if (proposed != null && TaskState.running.equals(proposed.getState())) {
+				return proposed;
 			}
 
 			size = Math.min(10 * i, list.size()); // make random choice wider
@@ -138,21 +155,28 @@ public class DefaultTaskQueueService implements TaskQueueService {
 	}
 
 	@Override
-	public boolean transition(QueueTask task, TaskState newState) {
+	public QueueTask transition(QueueTask task, TaskState newState) {
 
 		Assert.notNull(task, "Missing job!");
 		Assert.notNull(newState, "Missing state!");
 
 		try {
+			// Transition state task
+			final String taskId = task.getId();
+			final long updateTime = task.getUpdateTime();
 
 			QueueTask updated = sfy.transact(1, new Work<QueueTask>() {
 				@Override
 				public QueueTask run() {
 
 					// get latest version
-					QueueTask original = sfy.get(QueueTask.class).key(task.getId()).now();
+					QueueTask original = sfy.get(QueueTask.class).key(taskId).now();
 
 					// will throw exception in case transition is not possible (we don't have the latest version from database)
+					if (!original.getUpdateTime().equals(updateTime)) {
+						throw new TaskQueueError("Thread collision, some other thread already modified task!");
+					}
+
 					original.setState(newState);
 
 					// update state ...
@@ -162,17 +186,17 @@ public class DefaultTaskQueueService implements TaskQueueService {
 				}
 			});
 
-			return updated.getState().equals(newState);
+			return updated;
 		}
 		catch (ConcurrentModificationException | AerospikeException e) {
 			// job modified by other thread ... transition failed
 			log.info("Could not transition job: " + task + " to: " + newState + ", thread collision!");
-			return false;
+			return null;
 		}
 		catch (TaskQueueError e) {
 
 			log.log(Level.SEVERE, "Transition failed, thread collision.", e);
-			return false;
+			return null;
 		}
 	}
 
@@ -188,7 +212,10 @@ public class DefaultTaskQueueService implements TaskQueueService {
 		Assert.notNull(task.getId(), "Missing job id: " + task);
 
 		// put job in purge state
-		if (transition(task, TaskState.purge)) {
+		task = transition(task, TaskState.purge);
+
+		if (task != null &&
+			TaskState.purge.equals(task.getState())) {
 			// transition success - job can be deleted ...
 			sfy.delete(task).now();
 			return true;

@@ -2,6 +2,7 @@ package com.spikeify.taskqueue.utils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -226,6 +227,7 @@ public class JsonUtilsTest {
 		}
 	}
 
+	@Ignore
 	@Test(expected = IllegalArgumentException.class)
 	public void toJsonFailTest() {
 

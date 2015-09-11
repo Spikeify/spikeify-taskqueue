@@ -25,7 +25,7 @@ public class DefaultTaskQueueServiceTest {
 
 		spikeify = TestHelper.getSpikeify();
 
-		spikeify.truncateSet(QueueTask.class);
+		spikeify.truncateNamespace("test");
 	}
 
 	@Test
@@ -86,7 +86,7 @@ public class DefaultTaskQueueServiceTest {
 	public void testNextMultipleWorkers() throws Exception {
 
 		// Simple single threaded get next test ... put and get
-		TaskQueueService service = new DefaultTaskQueueService(spikeify, 5); // 5 workers
+		TaskQueueService service = new DefaultTaskQueueService(spikeify); // 5 workers
 
 
 		for (int i = 0; i < 5; i++) {

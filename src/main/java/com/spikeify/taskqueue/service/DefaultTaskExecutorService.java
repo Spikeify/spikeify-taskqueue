@@ -48,7 +48,7 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 			}
 
 			// put job in running state
-			started = queue.transition(next, TaskState.running);
+			started = TaskState.running.equals(next.getState());
 
 			// was successfully put in running state
 			if (started)
@@ -75,8 +75,8 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 				catch (Exception e) {
 					log.log(Level.SEVERE, "Failed to execute job: " + task + ", queue id:" + next.getId(), e);
 
-					boolean hasFailed = queue.transition(next, TaskState.failed);
-					if (!hasFailed) {
+					next = queue.transition(next, TaskState.failed);
+					if (next == null || !TaskState.failed.equals(next.getState())) {
 						log.log(Level.SEVERE, "Failed to transition queued job to failed state: " + next + "!", e);
 					}
 
