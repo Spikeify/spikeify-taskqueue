@@ -2,6 +2,7 @@ package com.spikeify.taskqueue.service;
 
 import com.spikeify.taskqueue.TaskContext;
 import com.spikeify.taskqueue.TaskResult;
+import com.spikeify.taskqueue.utils.Assert;
 
 import java.util.logging.Logger;
 
@@ -10,9 +11,12 @@ public class QueueScheduler implements Runnable {
 	private static final Logger log = Logger.getLogger(QueueScheduler.class.getSimpleName());
 
 	private final TaskQueueService queues;
+
 	private final TaskExecutorService executor;
 
 	public QueueScheduler(TaskQueueService queueService, String queueName) {
+
+		Assert.notNull(queueService, "Missing queue service!");
 
 		queues = queueService;
 		executor = new DefaultTaskExecutorService(queues, queueName);
@@ -31,6 +35,8 @@ public class QueueScheduler implements Runnable {
 		log.info("Starting task execution ...");
 
 		int count = 0;
+		long startTime = System.currentTimeMillis();
+
 		TaskResult result;
 
 		do {
@@ -43,7 +49,7 @@ public class QueueScheduler implements Runnable {
 		}
 		while (result != null);
 
-		log.info("No tasks found ... stopping after: " + count + ", exections.");
+		log.info("No tasks found ... stopping after: " + count + ", execution(s).");
 	}
 
 	// TODO:

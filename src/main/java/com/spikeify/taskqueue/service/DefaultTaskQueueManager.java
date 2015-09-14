@@ -18,9 +18,14 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	public static final Logger log = Logger.getLogger(DefaultTaskExecutorService.class.getSimpleName());
 
 	/**
-	 * Number of seconds schedule sleeps when no tasks are awailable
+	 * Number of seconds schedule sleeps when no tasks are available
 	 */
 	private static final long SLEEP_WAITING_FOR_TASKS = 10;
+
+	/**
+	 * Number of seconds waiting to trigger purge action on queue
+	 */
+	private static final long SLEEP_WAITING_FOR_PURGE = 60;
 
 	private final Spikeify sfy;
 
@@ -98,7 +103,22 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 
 		// will start x-threads per queue and monitor them (every 10 seconds)
 		ScheduledExecutorService executorService = new ScheduledThreadPoolExecutor(found.getSettings().getMaxThreads());
-		executorService.scheduleAtFixedRate(new QueueScheduler(queues, found.getName()), 0, SLEEP_WAITING_FOR_TASKS, TimeUnit.SECONDS);
+		String name = found.getName();
+
+		executorService.scheduleAtFixedRate(new QueueScheduler(queues, name),
+											0,
+											SLEEP_WAITING_FOR_TASKS,
+											TimeUnit.SECONDS);
+
+		executorService.scheduleAtFixedRate(new QueuePurger(queues, name, TaskState.failed, found.getSettings().getPurgeFailedAfterMinutes()),
+											SLEEP_WAITING_FOR_PURGE,
+											SLEEP_WAITING_FOR_PURGE,
+											TimeUnit.SECONDS);
+
+		executorService.scheduleAtFixedRate(new QueuePurger(queues, name, TaskState.finished, found.getSettings().getPurgeSuccessfulAfterMinutes()),
+											SLEEP_WAITING_FOR_PURGE,
+											SLEEP_WAITING_FOR_PURGE,
+											TimeUnit.SECONDS);
 	}
 
 	@Override

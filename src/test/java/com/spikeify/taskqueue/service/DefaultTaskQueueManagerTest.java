@@ -66,13 +66,19 @@ public class DefaultTaskQueueManagerTest {
 
 		queues.add(new TestTask(4), QUEUE); // add one more tasks
 
+		List<QueueTask> list = queues.list(TaskState.finished, QUEUE);
+		assertEquals(3, list.size());
+
+		list = queues.list(TaskState.queued, QUEUE);
+		assertEquals(1, list.size());
+
 		//
 		for (int i = 0; i < 10; i++) {
 			// wait until tasks are finished
 			Thread.sleep(1000);
 		}
 
-		List<QueueTask> list = queues.list(TaskState.finished, QUEUE);
+		list = queues.list(TaskState.finished, QUEUE);
 		assertEquals(4, list.size());
 	}
 
