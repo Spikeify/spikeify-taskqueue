@@ -211,6 +211,22 @@ public class QueueTask {
 	}
 
 	/**
+	 * @return null or duration in milliseconds job took to execute
+	 */
+	public Long getJobRunTime() {
+
+		return jobRunTime;
+	}
+
+	/**
+	 * @return null or duration in milliseconds task took from being added to the queue till finished
+	 */
+	public Long getExecutionTime() {
+
+		return executionTime;
+	}
+
+	/**
 	 * @return current task state
 	 */
 	public TaskState getState() {
@@ -250,6 +266,10 @@ public class QueueTask {
 		if (TaskState.finished.equals(newState) ||
 			TaskState.failed.equals(newState)) {
 			endTime = System.currentTimeMillis();
+
+			// execution statistics
+			jobRunTime = endTime - startTime;
+			executionTime = endTime - createTime;
 		}
 
 		// set state

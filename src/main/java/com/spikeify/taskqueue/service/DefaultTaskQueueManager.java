@@ -8,26 +8,30 @@ import com.spikeify.taskqueue.entities.TaskState;
 import com.spikeify.taskqueue.utils.Assert;
 
 import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 public class DefaultTaskQueueManager implements TaskQueueManager {
 
 	public static final Logger log = Logger.getLogger(DefaultTaskExecutorService.class.getSimpleName());
 
+	/**
+	 * Number of seconds schedule sleeps when no tasks are awailable
+	 */
+	private static final long SLEEP_WAITING_FOR_TASKS = 10;
+
 	private final Spikeify sfy;
 
-	//private final TaskQueueService queue;
-	private final TaskExecutorService executor;
 	private final TaskQueueService queues;
 
 	public DefaultTaskQueueManager(Spikeify spikeify,
-								   TaskExecutorService executorService,
 								   TaskQueueService queueService) {
 
 		Assert.notNull(spikeify, "Missing spikeify!");
 		sfy = spikeify;
 
-		executor = executorService;
 		queues = queueService;
 	}
 
@@ -91,6 +95,10 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 		Assert.notNull(found, "Queue: " + queueName + " is not registered!");
 
 		found.setEnabled(true);
+
+		// will start x-threads per queue and monitor them (every 10 seconds)
+		ScheduledExecutorService executorService = new ScheduledThreadPoolExecutor(found.getSettings().getMaxThreads());
+		executorService.scheduleAtFixedRate(new QueueScheduler(queues, found.getName()), 0, SLEEP_WAITING_FOR_TASKS, TimeUnit.SECONDS);
 	}
 
 	@Override

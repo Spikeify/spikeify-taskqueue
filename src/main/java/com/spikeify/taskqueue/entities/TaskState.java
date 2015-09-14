@@ -27,7 +27,7 @@ public enum TaskState {
 
 		TaskState[] possible = transitionMatrix.get(this);
 		if (possible == null) {
-			return false;
+			return false; // prevention ... should never happen
 		}
 
 		for (TaskState state : possible) {

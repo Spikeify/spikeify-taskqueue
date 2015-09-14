@@ -25,15 +25,15 @@ public class QueueSettings {
 	protected int purgeFailedAfterMinutes = 0;
 
 	/**
-	 * Max number of task retries before failing
-	 */
-	protected int maxNumberOfRetries = 3;
-
-	/**
 	 * Number of minutes task is considered hanged or execution takes to long
 	 * and interrupt is send ... than task is put into failed state
 	 */
 	protected int taskTimeoutMinutes = 10;
+
+	/**
+	 * Maximal number of threads for this queue on a single machine
+	 */
+	protected int maxThreads = 1;
 
 
 	@JsonProperty("purgeSuccessful")
@@ -62,20 +62,6 @@ public class QueueSettings {
 		purgeFailedAfterMinutes = minutes;
 	}
 
-	@JsonProperty("maxRetries")
-	public int getMaxNumberOfRetries() {
-
-		return maxNumberOfRetries;
-	}
-
-	@JsonProperty("maxRetries")
-	public void setMaxNumberOfRetries(int max) {
-
-		Assert.isTrue(max >= 0, "Number of retries must be >= 0!");
-		Assert.isTrue(max <= 10, "Number of retries must be <= 10!");
-		maxNumberOfRetries = max;
-	}
-
 	@JsonProperty("timeout")
 	public void setTaskTimeoutMinutes(int minutes) {
 		Assert.isTrue(minutes > 0, "Time out must be >= 1!");
@@ -87,5 +73,19 @@ public class QueueSettings {
 	@JsonProperty("timeout")
 	public int getTaskTimeoutMinutes() {
 		return taskTimeoutMinutes;
+	}
+
+	@JsonProperty("threads")
+	public int getMaxThreads() {
+		return maxThreads;
+	}
+
+	@JsonProperty("threads")
+	public void setMaxThreads(int threads) {
+
+		Assert.isTrue(threads > 0, "Number of threads must be >= 1!");
+		Assert.isTrue(threads <= 10, "Number of threads must be <= 10!");
+
+		maxThreads = threads;
 	}
 }
