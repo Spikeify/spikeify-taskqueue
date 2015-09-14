@@ -7,13 +7,12 @@ import com.spikeify.taskqueue.entities.TaskState;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class MultithreadTaskExecutorServiceTest {
@@ -117,7 +116,7 @@ public class MultithreadTaskExecutorServiceTest {
 		assertEquals(NUMBER_OF_JOBS, total);
 
 		List<QueueTask> list = spikeify.scanAll(QueueTask.class).now();
-		for (QueueTask task: list) {
+		for (QueueTask task : list) {
 			assertEquals("Task was run more than once: " + task.getId(), 1, task.getRunCount());
 		}
 	}
@@ -179,7 +178,7 @@ public class MultithreadTaskExecutorServiceTest {
 		assertEquals(NUMBER_OF_JOBS, total);
 
 		List<QueueTask> list = spikeify.scanAll(QueueTask.class).now();
-		for (QueueTask task: list) {
+		for (QueueTask task : list) {
 			assertEquals("Task was run more than once: " + task.getId(), 1, task.getRunCount());
 		}
 	}
@@ -248,10 +247,12 @@ public class MultithreadTaskExecutorServiceTest {
 		int runCount = 0;
 		for (QueueTask task : list) {
 			if (task.getRunCount() > 1) {
-				if (task.getState() == TaskState.finished)
+				if (task.getState() == TaskState.finished) {
 					runCount = runCount + (task.getRunCount() - 1);
-				else
+				}
+				else {
 					runCount = runCount + (task.getRunCount());
+				}
 			}
 		}
 
@@ -331,10 +332,12 @@ public class MultithreadTaskExecutorServiceTest {
 		int runCount = 0;
 		for (QueueTask task : list) {
 			if (task.getRunCount() > 1) {
-				if (task.getState() == TaskState.finished)
+				if (task.getState() == TaskState.finished) {
 					runCount = runCount + (task.getRunCount() - 1);
-				else
+				}
+				else {
 					runCount = runCount + (task.getRunCount());
+				}
 			}
 		}
 
@@ -411,10 +414,12 @@ public class MultithreadTaskExecutorServiceTest {
 		int runCount = 0;
 		for (QueueTask task : list) {
 			if (task.getRunCount() > 1) {
-				if (task.getState() == TaskState.finished)
+				if (task.getState() == TaskState.finished) {
 					runCount = runCount + (task.getRunCount() - 1);
-				else
+				}
+				else {
 					runCount = runCount + (task.getRunCount());
+				}
 			}
 		}
 
@@ -422,48 +427,34 @@ public class MultithreadTaskExecutorServiceTest {
 		// number of completed jobs should be same as number given jobs
 		assertEquals(0, total); // all failed
 		assertEquals("Invalid number of task retries", runCount, NUMBER_OF_JOBS * 3); // all task should be retried 3 times before abandon
-
-		// assertTrue("Failed and rerun count are not equal, failed: " + failed.get() + ", reruns: " + runCount, failed.get() == runCount);
 	}
 
 	@Test
-	public void purgeFinishedTasksTest() {
-
-		AtomicInteger failed = new AtomicInteger(0);
-		AtomicInteger completed = new AtomicInteger(0);
+	public void interruptLongRunningTask() throws InterruptedException {
 
 		DefaultTaskQueueService service = new DefaultTaskQueueService(spikeify);
 		DefaultTaskExecutorService executor = new DefaultTaskExecutorService(service, QUEUE);
 
-		// add tasks to queue
-		int NUMBER_OF_JOBS = 10;
-		for (int i = 0; i < NUMBER_OF_JOBS; i++) {
-			Job dummy = new TestTask(i);
-			service.add(dummy, QUEUE);
-		}
+		service.add(new LongRunningTask(), QUEUE);
 
-		execute(executor, completed, failed);
+		Runnable runnable = new Runnable() {
+			@Override
+			public void run() {
 
-		// check ... 10 finished tasks should be present
-		List<QueueTask> list = spikeify.scanAll(QueueTask.class).now();
-		assertEquals(10, list.size());
+				executor.execute(new TestTaskContext());
+			}
+		};
 
-		Set<String> ids = new HashSet<>();
-		for (QueueTask task : list) {
-			assertEquals(QUEUE, task.getQueue());
-			assertEquals(TaskState.finished, task.getState());
-			assertEquals(1, task.getRunCount());
+		Thread thread = new Thread(runnable);
+		thread.start();
 
-			ids.add(task.getId());
-		}
+		Thread.sleep(1000);
 
-		assertEquals(10, ids.size());
+		assertTrue(executor.isRunning());
 
-		int purged = executor.purge(TaskState.finished);
-		assertEquals(10, purged);
+		executor.interrupt();
 
-		list = spikeify.scanAll(QueueTask.class).now();
-		assertEquals(0, list.size());
+		assertFalse(executor.isRunning());
 	}
 
 	private int execute(TaskExecutorService service, AtomicInteger completed, AtomicInteger failed) {
@@ -477,12 +468,11 @@ public class MultithreadTaskExecutorServiceTest {
 			result = service.execute(new TestTaskContext());
 
 			// count finished jobs by this worker only
-			if (result != null)
-			{
+			if (result != null) {
 				switch (result.getState()) {
 					case ok:
 						completed.incrementAndGet();
-						completedJobs ++;
+						completedJobs++;
 						break;
 
 					case failed:

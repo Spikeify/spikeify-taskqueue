@@ -21,8 +21,7 @@ public class QueueTask {
 
 	private static final int MAX_RETRIES = 3;
 
-	private static final ObjectMapper jsonMapper = JsonUtils.getObjectMapper();
-
+	private static final ObjectMapper jsonMapper = new ObjectMapper();
 	static {
 		jsonMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
 	}
@@ -73,6 +72,20 @@ public class QueueTask {
 	protected long endTime;
 
 	/**
+	 * Execution time ... from creation until successful or failed finish
+	 * is null when not finished jet (also when failed)
+	 * is != null when finished or failed (locked)
+	 */
+	protected Long executionTime;
+
+	/**
+	 * Time job took to execute (pure job execution time) from running -> success/fail
+	 * is null when not run
+	 * is != null if run (shows last execution run time)
+	 */
+	protected Long jobRunTime;
+
+	/**
 	 * internal task state ... execution progress
 	 */
 	protected TaskState state;
@@ -87,13 +100,13 @@ public class QueueTask {
 	 * Joined values of QueueName + TaskState to enable filtering
 	 */
 	@Indexed
-	public String stateFilter; // set to private later
+	protected String stateFilter;
 
 	/**
 	 * Joined values of QueueName + locked state to enable filtering
 	 */
 	@Indexed
-	public String lockFilter; // set to private
+	protected String lockFilter;
 
 	/**
 	 * For Spikeify only
@@ -264,12 +277,6 @@ public class QueueTask {
 			   (TaskState.failed.equals(state) && runCount >= MAX_RETRIES);
 	}
 
-
-	public Integer getGeneration() {
-
-		return generation;
-	}
-
 	@Override
 	public String toString() {
 
@@ -311,5 +318,16 @@ public class QueueTask {
 	public static String getStateFilter(String queueName, TaskState taskState) {
 
 		return queueName + "::" + taskState.name();
+	}
+
+	/**
+	 * Compares last update time with current time ...
+	 * @param ageInMinutes number of minutes to pass (age)
+	 * @return true if task is older than given minutes, false otherwise
+	 */
+	public boolean isOlderThan(int ageInMinutes) {
+
+		long difference = System.currentTimeMillis() - updateTime;
+		return difference >= ((long)ageInMinutes * 1000L * 60L);
 	}
 }

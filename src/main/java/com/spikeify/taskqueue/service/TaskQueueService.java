@@ -44,9 +44,10 @@ public interface TaskQueueService {
 	QueueTask transition(QueueTask task, TaskState state);
 
 	/**
-	 * Removes job from database
-	 * @param task to be removed
+	 * Removes tasks from queue
+	 *
+	 * @param state   of tasks to be removed
+	 * @param taskAge age in minutes to allow action, 0 == now or never
 	 */
-	boolean remove(QueueTask task);
-
+	int purge(TaskState state, int taskAge, String queueName);
 }

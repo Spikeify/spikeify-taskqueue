@@ -8,7 +8,9 @@ import com.spikeify.taskqueue.TaskQueueError;
  */
 public final class Assert {
 
-	private Assert() {	}
+	private Assert() {
+
+	}
 
 	public static void notNull(Object test, String message) {
 
@@ -16,13 +18,22 @@ public final class Assert {
 	}
 
 	public static void isTrue(boolean condition, String message) {
+
 		if (!condition) {
 			throw new TaskQueueError(message);
 		}
 	}
 
 	public static void isFalse(boolean condition, String message) {
+
 		if (condition) {
+			throw new TaskQueueError(message);
+		}
+	}
+
+	public static void notNullOrEmpty(String test, String message) {
+
+		if (StringUtils.isNullOrEmptyTrimmed(test)) {
 			throw new TaskQueueError(message);
 		}
 	}

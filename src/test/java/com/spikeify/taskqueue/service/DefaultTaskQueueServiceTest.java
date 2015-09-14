@@ -1,9 +1,7 @@
 package com.spikeify.taskqueue.service;
 
 import com.spikeify.Spikeify;
-import com.spikeify.taskqueue.Job;
-import com.spikeify.taskqueue.TestHelper;
-import com.spikeify.taskqueue.TestTask;
+import com.spikeify.taskqueue.*;
 import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskState;
 import org.junit.Before;
@@ -12,6 +10,7 @@ import org.junit.Test;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
 
@@ -116,12 +115,71 @@ public class DefaultTaskQueueServiceTest {
 	}
 
 	@Test
-	public void testTransition() throws Exception {
+	public void purgeFinishedTasksTest() {
 
+		AtomicInteger failed = new AtomicInteger(0);
+		AtomicInteger completed = new AtomicInteger(0);
+
+		DefaultTaskQueueService service = new DefaultTaskQueueService(spikeify);
+		DefaultTaskExecutorService executor = new DefaultTaskExecutorService(service, QUEUE);
+
+		// add tasks to queue
+		int NUMBER_OF_JOBS = 10;
+		for (int i = 0; i < NUMBER_OF_JOBS; i++) {
+			Job dummy = new TestTask(i);
+			service.add(dummy, QUEUE);
+		}
+
+		execute(executor, completed, failed);
+
+		// check ... 10 finished tasks should be present
+		List<QueueTask> list = spikeify.scanAll(QueueTask.class).now();
+		assertEquals(10, list.size());
+
+		Set<String> ids = new HashSet<>();
+		for (QueueTask task : list) {
+			assertEquals(QUEUE, task.getQueue());
+			assertEquals(TaskState.finished, task.getState());
+			assertEquals(1, task.getRunCount());
+
+			ids.add(task.getId());
+		}
+
+		assertEquals(10, ids.size());
+
+		int purged = service.purge(TaskState.finished, 0, QUEUE);
+		assertEquals(10, purged);
+
+		list = spikeify.scanAll(QueueTask.class).now();
+		assertEquals(0, list.size());
 	}
 
-	@Test
-	public void testRemove() throws Exception {
+	private int execute(TaskExecutorService service, AtomicInteger completed, AtomicInteger failed) {
 
+		int completedJobs = 0;
+
+		TaskResult result;
+		do {
+
+			//Thread.sleep(100); // wait 100ms ..
+			result = service.execute(new TestTaskContext());
+
+			// count finished jobs by this worker only
+			if (result != null)
+			{
+				switch (result.getState()) {
+					case ok:
+						completed.incrementAndGet();
+						completedJobs ++;
+						break;
+
+					case failed:
+						failed.incrementAndGet();
+						break;
+				}
+			}
+		}
+		while (result != null);
+		return completedJobs;
 	}
 }

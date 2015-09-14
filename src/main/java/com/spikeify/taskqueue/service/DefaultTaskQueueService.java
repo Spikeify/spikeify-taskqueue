@@ -10,8 +10,6 @@ import com.spikeify.taskqueue.TaskQueueError;
 import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskState;
 import com.spikeify.taskqueue.utils.Assert;
-import com.spikeify.taskqueue.utils.IdGenerator;
-import com.spikeify.taskqueue.utils.StringUtils;
 
 import java.util.*;
 import java.util.logging.Level;
@@ -38,26 +36,20 @@ public class DefaultTaskQueueService implements TaskQueueService {
 
 	private final Spikeify sfy;
 
-	// unique executor id
-	private final String executorId;
-
 	public DefaultTaskQueueService(Spikeify spikeify) {
 
+		Assert.notNull(spikeify, "Missing spikeify!");
 		sfy = spikeify;
 
 		// create indexes if not already present ...
 		SpikeifyService.register(QueueTask.class);
-
-		// generate executor (thread id) - should be unique
-		executorId = IdGenerator.generate(5) + "_" + System.currentTimeMillis();
 	}
 
 	@Override
 	public QueueTask add(Job job, String queueName) {
 
-		if (StringUtils.isNullOrEmptyTrimmed(queueName)) {
-			queueName = DEFAULT_QUEUE_NAME;
-		}
+		Assert.notNull(job, "Missing job!");
+		Assert.notNullOrEmpty(queueName, "Missing queue name!");
 
 		QueueTask task = new QueueTask(job, queueName);
 
@@ -94,9 +86,7 @@ public class DefaultTaskQueueService implements TaskQueueService {
 	@Override
 	public QueueTask next(String queueName) {
 
-		if (StringUtils.isNullOrEmptyTrimmed(queueName)) {
-			queueName = DEFAULT_QUEUE_NAME;
-		}
+		Assert.notNullOrEmpty(queueName, "Missing queue name!");
 
 		// note: query can return task that are not open anymore ... so choosing random task is ensures that tasks are distributed more or less evenly among workers
 		ResultSet<QueueTask> openTasks = sfy.query(QueueTask.class)
@@ -143,10 +133,7 @@ public class DefaultTaskQueueService implements TaskQueueService {
 	public List<QueueTask> list(TaskState state, String queueName) {
 
 		Assert.notNull(state, "Missing job state!");
-
-		if (StringUtils.isNullOrEmptyTrimmed(queueName)) {
-			queueName = DEFAULT_QUEUE_NAME;
-		}
+		Assert.notNullOrEmpty(queueName, "Missing queue name!");
 
 		ResultSet<QueueTask> query = sfy.query(QueueTask.class)
 										.filter("stateFilter", QueueTask.getStateFilter(queueName, state))
@@ -205,8 +192,7 @@ public class DefaultTaskQueueService implements TaskQueueService {
 	 *
 	 * @param task to be removed
 	 */
-	@Override
-	public boolean remove(QueueTask task) {
+	protected boolean remove(QueueTask task) {
 
 		Assert.notNull(task, "Missing job to be removed!");
 		Assert.notNull(task.getId(), "Missing job id: " + task);
@@ -222,5 +208,26 @@ public class DefaultTaskQueueService implements TaskQueueService {
 		}
 
 		return false;
+	}
+
+	 @Override
+	 public int purge(TaskState state, int taskAge, String queueName) {
+
+		Assert.notNull(state, "Missing job state!");
+		Assert.isTrue(state.canTransition(TaskState.purge), "Can't purge tasks in: " + state + " state!");
+
+		int count = 0;
+		List<QueueTask> list = list(state, queueName);
+		for (QueueTask item : list) {
+
+			if (item.isLocked() && // task must be locked ... finished, or failed
+				item.isOlderThan(taskAge)) {
+				if (remove(item)) {
+					count++;
+				}
+			}
+		}
+
+		return count;
 	}
 }

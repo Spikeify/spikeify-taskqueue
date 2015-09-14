@@ -32,6 +32,12 @@ public class TaskResult {
 		return context;
 	}
 
+	@Override
+	public String toString() {
+		return "State: " + state +
+			   (context != null ? ", Context: " + context : "");
+	}
+
 	// Task result state initializer ... for easier usage
 
 	public static TaskResult ok() {
