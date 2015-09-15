@@ -12,9 +12,4 @@ public class FailOnlyTask implements Job {
 
 		return TaskResult.failed();
 	}
-
-	@Override
-	public void interrupt() {
-
-	}
 }

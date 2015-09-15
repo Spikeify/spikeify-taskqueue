@@ -34,7 +34,11 @@ public class QueueInfo {
 	public QueueInfo(String queueName) {
 
 		Assert.notNullOrEmpty(queueName, "Missing queue name!");
+
+		// default settings
+		enabled = false;
 		name = queueName.trim();
+
 		setSettings(new QueueSettings());
 	}
 /*

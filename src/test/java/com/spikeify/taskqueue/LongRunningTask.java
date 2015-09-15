@@ -5,8 +5,6 @@ package com.spikeify.taskqueue;
  */
 public class LongRunningTask implements Job {
 
-	private boolean interrupt = false;
-
 	@Override
 	public TaskResult execute(TaskContext context) {
 
@@ -18,7 +16,7 @@ public class LongRunningTask implements Job {
 			age = System.currentTimeMillis() - startTime;
 
 			try {
-				if (interrupt) {
+				if (context != null && context.interrupted()) {
 
 					Thread.sleep(3000); // wait 3 seconds ... simulate that interrupt takes time
 					return TaskResult.interrupted(); // gracefully exit
@@ -33,11 +31,5 @@ public class LongRunningTask implements Job {
 		while (age < 60L * 1000L);
 
 		return TaskResult.ok();
-	}
-
-	@Override
-	public void interrupt() {
-
-		interrupt = true;
 	}
 }

@@ -27,19 +27,13 @@ public class FailingTask implements Job {
 		// random generated value from 1-100 (10% should fail)
 		if (value % 20 == 0) {
 			throw new IllegalArgumentException("I'm evil!");
-			// return TaskResult.failed();
 		}
 
-		if (interrupted) {
+		if (context != null && context.interrupted()) {
 			return TaskResult.interrupted();
 		}
 
 		return TaskResult.ok();
 
-	}
-
-	@Override
-	public void interrupt() {
-		interrupted = true;
 	}
 }

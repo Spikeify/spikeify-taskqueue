@@ -3,11 +3,14 @@ package com.spikeify.taskqueue.service;
 import com.spikeify.Spikeify;
 import com.spikeify.Work;
 import com.spikeify.commands.AcceptFilter;
+import com.spikeify.taskqueue.TaskContext;
 import com.spikeify.taskqueue.entities.QueueInfo;
 import com.spikeify.taskqueue.entities.TaskState;
 import com.spikeify.taskqueue.utils.Assert;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -27,9 +30,18 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	 */
 	private static final long SLEEP_WAITING_FOR_PURGE = 60;
 
-	private final Spikeify sfy;
+	/**
+	 * Number of seconds waiting for a task to shut down gracefully
+	 */
+	private static final long SHUTDOWN_TIME = 60;
 
+	private final Spikeify sfy;
 	private final TaskQueueService queues;
+
+	/**
+	 * Thread pool storage ... single instance for each JVM
+	 */
+	private static final Map<String, ScheduledExecutorService> threadPool = new HashMap<>();
 
 	public DefaultTaskQueueManager(Spikeify spikeify,
 								   TaskQueueService queueService) {
@@ -53,20 +65,19 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 
 				QueueInfo original = sfy.get(QueueInfo.class).key(name).now();
 
-				if (original != null) { // we have a duplicate ... regenerate job id
-					log.warning("Queue already registered: " + name + "!");
+				if (original != null) { // already registered ... just return original
 					return original;
 				}
 
 				// create default queue info ...
 				QueueInfo newQueue = new QueueInfo(name);
-				newQueue.setEnabled(false);
 
 				sfy.create(newQueue).now();
 				return newQueue;
 			}
 		});
 
+		log.info("Queue: " + name + ", registered!");
 		return queue;
 	}
 
@@ -94,64 +105,90 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	}
 
 	@Override
-	public void start(String queueName) {
+	public void start(String queueName) throws InterruptedException {
 
 		QueueInfo found = find(queueName);
-		Assert.notNull(found, "Queue: " + queueName + " is not registered!");
+		Assert.notNull(found, "Queue: " + queueName + ", is not registered!");
 
-		found.setEnabled(true);
+		// enable queue
+		found = save(found, true);
 
-		// will start x-threads per queue and monitor them (every 10 seconds)
-		ScheduledExecutorService executorService = new ScheduledThreadPoolExecutor(found.getSettings().getMaxThreads());
 		String name = found.getName();
 
-		executorService.scheduleAtFixedRate(new QueueScheduler(queues, name),
+		// stop thread running if any ...
+		stopRunningThreads(name);
+
+		// will start x-threads per queue and monitor them (every 10 seconds)
+		ScheduledThreadPoolExecutor executorService = new ScheduledThreadPoolExecutor(found.getSettings().getMaxThreads());
+
+		// queue execution
+		TaskContext context = new TaskThreadPoolContext(executorService);
+
+		executorService.scheduleAtFixedRate(new QueueScheduler(queues, name, context),
 											0,
 											SLEEP_WAITING_FOR_TASKS,
 											TimeUnit.SECONDS);
 
+		// failed task purging
 		executorService.scheduleAtFixedRate(new QueuePurger(queues, name, TaskState.failed, found.getSettings().getPurgeFailedAfterMinutes()),
 											SLEEP_WAITING_FOR_PURGE,
 											SLEEP_WAITING_FOR_PURGE,
 											TimeUnit.SECONDS);
 
+		// finished task purging
 		executorService.scheduleAtFixedRate(new QueuePurger(queues, name, TaskState.finished, found.getSettings().getPurgeSuccessfulAfterMinutes()),
 											SLEEP_WAITING_FOR_PURGE,
 											SLEEP_WAITING_FOR_PURGE,
 											TimeUnit.SECONDS);
+
+		// store execution into thread pool by queue name
+		threadPool.put(name, executorService);
 	}
 
 	@Override
-	public void stop(String queueName) {
+	public void stop(String queueName) throws InterruptedException {
 
 		QueueInfo found = find(queueName);
 		Assert.notNull(found, "Queue: " + queueName + " is not registered!");
 
-		// clean up
-		run();
+		// disabled queue
+		found = save(found, false);
 
-		// disable
-		found.setEnabled(false);
+		stopRunningThreads(found.getName());
 	}
 
-	/**
-	 * Must be called on regular bases ... for instance every minute
-	 */
-	@Override
-	public void run() {
+	private QueueInfo save(QueueInfo found, boolean enabled) {
 
-		List<QueueInfo> list = list(true);
+		return sfy.transact(5, new Work<QueueInfo>() {
+			@Override
+			public QueueInfo run() {
 
-		for (QueueInfo queue : list) {
+				QueueInfo original = sfy.get(QueueInfo.class).key(found.getName()).now();
+				original.setEnabled(enabled);
 
-			queues.purge(TaskState.finished, queue.getSettings().getPurgeSuccessfulAfterMinutes(), queue.getName());
+				sfy.update(original).now();
+				return original;
+			}
+		});
+	}
 
-			// purge failed tasks only if allowed
-			int failedAge = queue.getSettings().getPurgeFailedAfterMinutes();
-			if (failedAge > 0) {
-				queues.purge(TaskState.failed, failedAge, queue.getName());
+	protected void stopRunningThreads(String queueName) throws InterruptedException {
+
+		ScheduledExecutorService running = threadPool.get(queueName);
+
+		if (running != null) {
+			// interrupt all running schedules if any
+			running.shutdown();
+
+			if (!running.awaitTermination(SHUTDOWN_TIME, TimeUnit.SECONDS)) {
+				log.warning("Executor did not terminate in the specified time.");
+
+				List<Runnable> droppedTasks = running.shutdownNow();
+				log.warning("Executor was abruptly shut down. " + droppedTasks.size() + " tasks will not be executed.");
 			}
 		}
+
+		threadPool.remove(queueName);
 	}
 
 	protected QueueInfo find(String queueName) {

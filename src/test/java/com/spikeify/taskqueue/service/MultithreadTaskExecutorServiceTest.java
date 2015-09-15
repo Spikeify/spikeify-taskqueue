@@ -436,12 +436,13 @@ public class MultithreadTaskExecutorServiceTest {
 		DefaultTaskExecutorService executor = new DefaultTaskExecutorService(service, QUEUE);
 
 		service.add(new LongRunningTask(), QUEUE);
+		TestTaskContext context = new TestTaskContext();
 
 		Runnable runnable = new Runnable() {
 			@Override
 			public void run() {
 
-				executor.execute(new TestTaskContext());
+				executor.execute(context);
 			}
 		};
 
@@ -452,7 +453,25 @@ public class MultithreadTaskExecutorServiceTest {
 
 		assertTrue(executor.isRunning());
 
-		executor.interrupt();
+		// send interrupt signal to task
+		context.interruptTask();
+
+		// let's wait some time
+		for (int i = 1; i <= 5; i++) {
+
+			// wait ... until job ends
+			if (!executor.isRunning()) {
+				break;
+			}
+
+			try {
+				log.info("Waiting for job to interrupt (" + i + "/" + 5 + ")");
+				Thread.sleep(1000);
+			}
+			catch (InterruptedException e) {
+
+			}
+		}
 
 		assertFalse(executor.isRunning());
 	}

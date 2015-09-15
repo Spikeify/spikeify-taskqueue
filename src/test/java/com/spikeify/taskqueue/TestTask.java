@@ -6,7 +6,6 @@ package com.spikeify.taskqueue;
 public class TestTask implements Job {
 
 	private int property;
-	private boolean interrupt;
 
 	protected TestTask() {
 		// for Jackson
@@ -30,17 +29,10 @@ public class TestTask implements Job {
 	public TaskResult execute(TaskContext context) {
 
 		// nothing to do right now ...
-		if (interrupt) {
+		if (context != null && context.interrupted()) {
 			return TaskResult.interrupted();
 		}
 
 		return TaskResult.ok();
-	}
-
-	@Override
-	public void interrupt() {
-
-		interrupt = true;
-		// nothing to do ...
 	}
 }

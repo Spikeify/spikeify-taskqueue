@@ -21,9 +21,8 @@ public interface TaskExecutorService {
 	TaskResult execute(TaskContext context);
 
 	/**
-	 * General execution interrupt for the task running
+	 * Indicator that a job is being executed (is running)
+	 * @return true if job is being executed, false if no job is executed
 	 */
-	void interrupt();
-
 	boolean isRunning();
 }

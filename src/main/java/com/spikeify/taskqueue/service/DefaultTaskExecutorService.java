@@ -24,11 +24,11 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 	 * times a job is retrieved and tried to be started when given from a queue ... no job is executed
 	 */
 	private static final int MAX_START_RETRIES = 3;
-
-	/**
+/*
+	*//**
 	 * Number of seconds executor waits for interrupt to perform his action
-	 */
-	private static final int MAX_INTERRUPT_WAIT = 5;
+	 *//*
+	private static final int MAX_INTERRUPT_WAIT = 5;*/
 
 	private final String queueName;
 	private final TaskQueueService queue;
@@ -135,7 +135,7 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 	 * Will interrupt a running job if any
 	 *
 	 * @return number of stopped tasks
-	 */
+	 *//*
 	@Override
 	public void interrupt() {
 
@@ -155,11 +155,11 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 					Thread.sleep(1000);
 				}
 				catch (InterruptedException e) {
-					// nothing to do ...
+					log.log(Level.WARNING, "Thread was interrupted!", e);
 				}
 			}
 		}
-	}
+	}*/
 
 	@Override
 	public boolean isRunning() {

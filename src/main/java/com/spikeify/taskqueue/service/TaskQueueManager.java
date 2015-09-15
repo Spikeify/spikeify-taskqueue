@@ -27,20 +27,17 @@ public interface TaskQueueManager {
 	void unregister(String queueName);
 
 	/**
-	 * Enables queue to be run
+	 * Starts queue ...
+	 * should be called only once per thread,
+	 * if called multiple times then threads are terminated and restated (acts as restart)
+	 *
 	 * @param queueName name of queue
 	 */
-	void start(String queueName);
+	void start(String queueName) throws InterruptedException;
 
 	/**
-	 * Disables queue - stops
+	 * Disables queue - stops all running tasks/threads
 	 * @param queueName to be stopped
 	 */
-	void stop(String queueName);
-
-	/**
-	 * Must be run in regular bases ...
-	 * should purge finished/failed tasks and restartart hanged tasks
-	 */
-	void run();
+	void stop(String queueName) throws InterruptedException;
 }

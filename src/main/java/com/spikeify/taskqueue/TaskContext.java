@@ -5,4 +5,10 @@ package com.spikeify.taskqueue;
  */
 public interface TaskContext {
 
+	/**
+	 * To be used to send interrupt signal to running task
+	 *
+	 * @return true in case task should be interrupted, false otherwise
+	 */
+	boolean interrupted();
 }

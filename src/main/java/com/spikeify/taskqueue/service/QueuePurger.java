@@ -9,9 +9,9 @@ public class QueuePurger implements Runnable {
 	private static final Logger log = Logger.getLogger(QueuePurger.class.getSimpleName());
 
 	private final TaskQueueService queues;
+	private String queueName;
 	private final TaskState state;
 	private final int age;
-	private String queueName;
 
 	public QueuePurger(TaskQueueService queueService, String queue, TaskState taskState, int taskAge) {
 
