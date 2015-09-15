@@ -85,14 +85,23 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 					// 2. execute job
 					TaskResult result = currentJob.execute(context);
 
-					// 3. set job to finished or failed ...
-					if (TaskResultState.ok.equals(result.getState())) {
-						queue.transition(next, TaskState.finished);
+					// 3. set job to finished, interrupted or failed ...
+					switch (result.getState()) {
+						case ok:
+							queue.transition(next, TaskState.finished);
+							break;
+
+						case interrupted:
+							queue.transition(next, TaskState.interrupted);
+							break;
+
+						default:
+						case failed:
+							queue.transition(next, TaskState.failed);
+							break;
 					}
-					else {
-						log.info("Task resulted in: " + result);
-						queue.transition(next, TaskState.failed);
-					}
+
+					log.info("Task resulted in: " + result);
 
 					// 4. end execution
 					return result;

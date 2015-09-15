@@ -1,6 +1,7 @@
 package com.spikeify.taskqueue.service;
 
 import com.spikeify.Spikeify;
+import com.spikeify.taskqueue.LongRunningTask;
 import com.spikeify.taskqueue.TestHelper;
 import com.spikeify.taskqueue.TestTask;
 import com.spikeify.taskqueue.entities.QueueTask;
@@ -11,6 +12,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class DefaultTaskQueueManagerTest {
 
@@ -58,11 +60,9 @@ public class DefaultTaskQueueManagerTest {
 
 		manager.start(QUEUE);
 
-		//
-		for (int i = 0; i < 5; i++) {
-			// wait until tasks are finished
-			Thread.sleep(1000);
-		}
+		// wait for task to execute (5s most)
+		Thread.sleep(5000);
+
 
 		queues.add(new TestTask(4), QUEUE); // add one more tasks
 
@@ -72,11 +72,9 @@ public class DefaultTaskQueueManagerTest {
 		list = queues.list(TaskState.queued, QUEUE);
 		assertEquals(1, list.size());
 
-		//
-		for (int i = 0; i < 10; i++) {
-			// wait until tasks are finished
-			Thread.sleep(1000);
-		}
+		// wait so task can finish (10s)
+		Thread.sleep(10000);
+
 
 		list = queues.list(TaskState.finished, QUEUE);
 		assertEquals(4, list.size());
@@ -85,10 +83,25 @@ public class DefaultTaskQueueManagerTest {
 	@Test
 	public void testStop() throws Exception {
 
+		// start and then abruptly stop
+
+		manager.register(QUEUE); // create queue
+
+		for (int i = 0; i < 10; i++) { // add few long lasting tasks
+			// add some long running tasks
+			queues.add(new LongRunningTask(), QUEUE);
+		}
+
+		manager.start(QUEUE);
+
+		Thread.sleep(1000);
+
+		// let's stop
+		manager.stop(QUEUE);
+
+		List<QueueTask> list = queues.list(TaskState.queued, QUEUE);
+		assertTrue(list.size() > 0);
 	}
 
-	@Test
-	public void testRun() throws Exception {
 
-	}
 }
