@@ -2,6 +2,7 @@ package com.spikeify.taskqueue.service;
 
 import com.spikeify.taskqueue.TaskContext;
 import com.spikeify.taskqueue.TaskResult;
+import com.spikeify.taskqueue.entities.TaskResultState;
 import com.spikeify.taskqueue.utils.Assert;
 
 import java.util.logging.Logger;
@@ -35,7 +36,8 @@ public class QueueScheduler implements Runnable {
 
 		log.info("Starting task execution ...");
 
-		int count = 0;
+		int successCount = 0;
+		int allCount = 0;
 
 		TaskResult result;
 
@@ -44,15 +46,26 @@ public class QueueScheduler implements Runnable {
 			result = executor.execute(context);
 
 			if (result != null) {
-				count++; // count tasks executed
+
+				if (TaskResultState.interrupted.equals(result.getState())) {
+					log.info("Task execution was interrupted ...");
+					break;
+				}
+
+				if (TaskResultState.ok.equals(result.getState())) {
+					successCount++;
+				}
+
+				allCount++; // count tasks executed
 			}
 		}
 		while (result != null);
 
-		log.info("No tasks found, stopping after: " + count + ", execution(s).");
+		log.info("No tasks found, stopping after: " + successCount + "/" + allCount + " execution(s).");
 	}
 
 	private TaskContext getContext() {
+
 		return context;
 	}
 }

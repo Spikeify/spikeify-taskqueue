@@ -12,7 +12,6 @@ import org.junit.Test;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class DefaultTaskQueueManagerTest {
 
@@ -87,21 +86,32 @@ public class DefaultTaskQueueManagerTest {
 
 		manager.register(QUEUE); // create queue
 
-		for (int i = 0; i < 10; i++) { // add few long lasting tasks
+		for (int i = 0; i < 20; i++) { // add few long lasting tasks
 			// add some long running tasks
-			queues.add(new LongRunningTask(), QUEUE);
+			queues.add(new LongRunningTask(1000), QUEUE);
 		}
 
 		manager.start(QUEUE);
 
-		Thread.sleep(1000);
+		Thread.sleep(5000); // let at least 4 tasks finish
 
 		// let's stop
 		manager.stop(QUEUE);
 
+		// 15 are left in the queue
 		List<QueueTask> list = queues.list(TaskState.queued, QUEUE);
-		assertTrue(list.size() > 0);
+		assertEquals(15, list.size());
+
+		// 1 was interrupted
+		list = queues.list(TaskState.interrupted, QUEUE);
+		assertEquals(1, list.size());
+
+		// 4 manage to finish
+		list = queues.list(TaskState.finished, QUEUE);
+		assertEquals(4, list.size());
+
+		// none should fail
+		list = queues.list(TaskState.failed, QUEUE);
+		assertEquals(0, list.size());
 	}
-
-
 }
