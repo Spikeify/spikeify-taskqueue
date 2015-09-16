@@ -79,7 +79,7 @@ public class QueueTask {
 	protected Long executionTime;
 
 	/**
-	 * Time job took to execute (pure job execution time) from running -> success/fail
+	 * Time job took to execute (pure job execution time) from: running to: success/fail
 	 * is null when not run
 	 * is != null if run (shows last execution run time)
 	 */
@@ -91,7 +91,7 @@ public class QueueTask {
 	protected TaskState state;
 
 	/**
-	 * count of taks runs 0 - taks was never run, 1 - task was run once, 2 - run once / and once retried ...
+	 * count of tasks runs 0 - tasks was never run, 1 - task was run once, 2 - run once / and once retried ...
 	 * use in combination with state to determine general task state
 	 */
 	protected int runCount;

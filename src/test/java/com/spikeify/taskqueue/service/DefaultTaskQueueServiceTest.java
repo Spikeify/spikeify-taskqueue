@@ -4,6 +4,7 @@ import com.spikeify.Spikeify;
 import com.spikeify.taskqueue.*;
 import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskState;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -23,6 +24,11 @@ public class DefaultTaskQueueServiceTest {
 	public void setUp() {
 
 		spikeify = TestHelper.getSpikeify();
+		spikeify.truncateNamespace("test");
+	}
+
+	@After
+	public void tearDown() {
 
 		spikeify.truncateNamespace("test");
 	}

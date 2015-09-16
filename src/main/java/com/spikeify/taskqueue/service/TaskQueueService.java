@@ -13,13 +13,17 @@ public interface TaskQueueService {
 
 	/**
 	 * Adds job to queue
-	 * @param job to be executed
+	 *
+	 * @param job       to be executed
+	 * @param queueName name of queue
 	 * @return added job
 	 */
 	QueueTask add(Job job, String queueName);
 
 	/**
 	 * Gets next job to be executed (put in running state)
+	 *
+	 * @param queueName name of queue
 	 * @return job to be executed or null if no job found
 	 */
 	QueueTask next(String queueName);
@@ -27,7 +31,8 @@ public interface TaskQueueService {
 
 	/**
 	 * Lists all tasks from queue in given state
-	 * @param state job is in
+	 *
+	 * @param state     job is in
 	 * @param queueName name of queue
 	 * @return list of tasks in state from queue
 	 */
@@ -37,7 +42,7 @@ public interface TaskQueueService {
 	 * Transitions job from current state to new state
 	 * This is done in transaction so only one thread can change the state (this is then the worker thread for this job)
 	 *
-	 * @param task to transition state
+	 * @param task  to transition state
 	 * @param state to transition to
 	 * @return updated task if transition successed, false if job could not be transitioned
 	 */
@@ -48,6 +53,7 @@ public interface TaskQueueService {
 	 *
 	 * @param state   of tasks to be removed
 	 * @param taskAge age in minutes to allow action, 0 == now or never
+	 * @param queueName name of queue
 	 */
 	int purge(TaskState state, int taskAge, String queueName);
 }

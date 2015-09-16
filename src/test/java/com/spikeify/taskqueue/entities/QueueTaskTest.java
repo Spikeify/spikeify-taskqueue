@@ -1,10 +1,14 @@
 package com.spikeify.taskqueue.entities;
 
+import com.spikeify.Spikeify;
 import com.spikeify.taskqueue.Job;
 import com.spikeify.taskqueue.TaskQueueError;
+import com.spikeify.taskqueue.TestHelper;
 import com.spikeify.taskqueue.TestTask;
 import com.spikeify.taskqueue.utils.Dummy;
 import com.spikeify.taskqueue.utils.JsonUtils;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -13,6 +17,21 @@ import static org.junit.Assert.assertTrue;
 public class QueueTaskTest {
 
 	public static String QUEUE = "test";
+
+	private Spikeify spikeify;
+
+	@Before
+	public void setUp() {
+
+		spikeify = TestHelper.getSpikeify();
+		spikeify.truncateNamespace("test");
+	}
+
+	@After
+	public void tearDown() {
+
+		spikeify.truncateNamespace("test");
+	}
 
 	@Test
 	public void createSimpleTask() {

@@ -7,6 +7,7 @@ import com.spikeify.taskqueue.TestTask;
 import com.spikeify.taskqueue.entities.QueueInfo;
 import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskState;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,6 +35,12 @@ public class DefaultTaskQueueManagerTest {
 
 		queues = new DefaultTaskQueueService(spikeify);
 		manager = new DefaultTaskQueueManager(spikeify, queues);
+	}
+
+	@After
+	public void tearDown() {
+
+		spikeify.truncateNamespace("test");
 	}
 
 	@Test
@@ -68,10 +75,26 @@ public class DefaultTaskQueueManagerTest {
 		manager.start();
 		list = manager.list(true);
 
+		assertEquals(2, list.size());
 		for (QueueInfo info: list) {
 			assertTrue(info.isStarted());
 			assertTrue(info.getName().equals("test") || info.getName().equals("test3"));
 		}
+
+		// disable one queue ..
+		manager.disable("test");
+
+		// queue should be stop
+		manager.check();
+
+		manager.start();
+		list = manager.list(true);
+
+		assertEquals(1, list.size());
+
+		QueueInfo info = list.get(0);
+		assertTrue(info.isStarted());
+		assertTrue(info.getName().equals("test3"));
 	}
 
 

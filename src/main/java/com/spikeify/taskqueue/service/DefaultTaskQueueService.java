@@ -191,6 +191,7 @@ public class DefaultTaskQueueService implements TaskQueueService {
 	 * Removes job from queue
 	 *
 	 * @param task to be removed
+	 * @return true if task was successfully deleted, false otherwise
 	 */
 	protected boolean remove(QueueTask task) {
 

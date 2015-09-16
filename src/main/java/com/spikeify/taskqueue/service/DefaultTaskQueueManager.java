@@ -4,7 +4,7 @@ import com.spikeify.Spikeify;
 import com.spikeify.Work;
 import com.spikeify.commands.AcceptFilter;
 import com.spikeify.taskqueue.TaskContext;
-import com.spikeify.taskqueue.entities.IQueueInfoUpdater;
+import com.spikeify.taskqueue.entities.QueueInfoUpdater;
 import com.spikeify.taskqueue.entities.QueueInfo;
 import com.spikeify.taskqueue.entities.QueueSettings;
 import com.spikeify.taskqueue.entities.TaskState;
@@ -195,7 +195,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	@Override
 	public QueueInfo enable(String queueName) {
 
-		return save(queueName, new IQueueInfoUpdater() {
+		return save(queueName, new QueueInfoUpdater() {
 			@Override
 			public void update(QueueInfo info) {
 
@@ -207,7 +207,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	@Override
 	public QueueInfo disable(String queueName) {
 
-		return save(queueName, new IQueueInfoUpdater() {
+		return save(queueName, new QueueInfoUpdater() {
 			@Override
 			public void update(QueueInfo info) {
 
@@ -268,7 +268,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 
 	private QueueInfo startQueue(final String queueName, boolean start) {
 
-		return save(queueName, new IQueueInfoUpdater() {
+		return save(queueName, new QueueInfoUpdater() {
 			@Override
 			public void update(QueueInfo info) {
 
@@ -277,7 +277,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 		});
 	}
 
-	private QueueInfo save(String queueName, IQueueInfoUpdater updater) {
+	private QueueInfo save(String queueName, QueueInfoUpdater updater) {
 
 		return sfy.transact(5, new Work<QueueInfo>() {
 			@Override

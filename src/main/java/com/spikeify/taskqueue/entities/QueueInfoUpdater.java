@@ -1,6 +1,6 @@
 package com.spikeify.taskqueue.entities;
 
-public interface IQueueInfoUpdater {
+public interface QueueInfoUpdater {
 
 	void update(QueueInfo info);
 }

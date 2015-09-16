@@ -32,24 +32,28 @@ public interface TaskQueueManager {
 	 * if called multiple times then threads are terminated and restated (acts as restart)
 	 *
 	 * @param queueNames names to be started or empty to start all enabled queues
+	 * @throws InterruptedException
 	 */
 	void start(String... queueNames) throws InterruptedException;
 
 	/**
 	 * Stops queues - stops all running tasks/threads (on given JVM)
 	 * @param queueNames to be stopped or empty to stop all enabled queues
+	 * @throws InterruptedException
 	 */
 	void stop(String... queueNames) throws InterruptedException;
 
 	/**
 	 * Enables queue
 	 * @param queueName - enables queue to be run
+	 * @return enabled queue info
 	 */
 	QueueInfo enable(String queueName);
 
 	/**
 	 * Disables queue - stops queue if running
 	 * @param queueName - disables queue from running
+	 * @return disabled queue info
 	 */
 	QueueInfo disable(String queueName);
 
@@ -58,6 +62,7 @@ public interface TaskQueueManager {
 	 * takes care that if one instance has started/stopped a queue it is also started/stopped on other machines
 	 *
 	 * Best invoked from a cron job or similar
+	 * @throws InterruptedException
 	 */
 	void check() throws InterruptedException;
 }

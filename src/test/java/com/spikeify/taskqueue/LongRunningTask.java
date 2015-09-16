@@ -46,11 +46,12 @@ public class LongRunningTask implements Job {
 			try {
 				if (context != null && context.interrupted()) {
 
+					log.info("Task is being interrupted ... sending kill signal!");
 					Thread.sleep(3000); // wait 3 seconds ... simulate that interrupt takes time
 					return TaskResult.interrupted(); // gracefully exit
 				}
 
-				Thread.sleep(100); // wait one second
+				Thread.sleep(100); // wait 1/10 of a second
 			}
 			catch (InterruptedException e) {
 				return TaskResult.interrupted(); // gracefully exit

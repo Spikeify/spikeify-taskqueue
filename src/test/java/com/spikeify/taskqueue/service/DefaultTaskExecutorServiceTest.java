@@ -3,6 +3,7 @@ package com.spikeify.taskqueue.service;
 import com.spikeify.Spikeify;
 import com.spikeify.taskqueue.*;
 import com.spikeify.taskqueue.entities.TaskResultState;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -20,6 +21,12 @@ public class DefaultTaskExecutorServiceTest {
 	public void setUp() {
 
 		spikeify = TestHelper.getSpikeify();
+		spikeify.truncateNamespace("test");
+	}
+
+	@After
+	public void tearDown() {
+
 		spikeify.truncateNamespace("test");
 	}
 
