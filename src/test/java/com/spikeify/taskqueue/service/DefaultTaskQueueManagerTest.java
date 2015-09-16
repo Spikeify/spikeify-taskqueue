@@ -65,7 +65,7 @@ public class DefaultTaskQueueManagerTest {
 		assertFalse(queue.isStarted());
 
 		// queues are started if not started
-		manager.check();
+		manager.start();
 		list = manager.list(true);
 
 		for (QueueInfo info: list) {
@@ -121,14 +121,14 @@ public class DefaultTaskQueueManagerTest {
 
 		manager.start(QUEUE);
 
-		Thread.sleep(6000); // let at least 5 tasks finish
+		Thread.sleep(4500); // let at least 4 tasks finish
 
 		// let's stop
 		manager.stop(QUEUE);
 
 		// 15 are left in the queue
 		List<QueueTask> list = queues.list(TaskState.queued, QUEUE);
-		assertEquals(14, list.size());
+		assertEquals(15, list.size());
 
 		// 1 was interrupted
 		list = queues.list(TaskState.interrupted, QUEUE);
@@ -136,7 +136,7 @@ public class DefaultTaskQueueManagerTest {
 
 		// 4 manage to finish
 		list = queues.list(TaskState.finished, QUEUE);
-		assertEquals(5, list.size());
+		assertEquals(4, list.size());
 
 		// none should fail
 		list = queues.list(TaskState.failed, QUEUE);
@@ -181,6 +181,6 @@ public class DefaultTaskQueueManagerTest {
 
 		// check how many tasks have been finished
 		List<QueueTask> list = queues.list(TaskState.finished, QUEUE);
-		assertTrue(list.size() >= (MACHINES * SLEEP_WAITING_FOR_TASKS) - (MACHINES * 3)); // at least so many task should have been finished
+		assertTrue("Only: " + list.size() + " tasks finished, expected: " + ((MACHINES * SLEEP_WAITING_FOR_TASKS) - (MACHINES * 3)), list.size() >= (MACHINES * SLEEP_WAITING_FOR_TASKS) - (MACHINES * 3)); // at least so many task should have been finished
 	}
 }

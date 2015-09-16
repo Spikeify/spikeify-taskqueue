@@ -233,13 +233,13 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 			boolean isInPool = threadPool.containsKey(original.getName());
 
 			// queue should be started but is not
-			if (!isStarted && !isInPool) {
+			if (isStarted && !isInPool) {
 				start(original.getName());
 				continue;
 			}
 
 			// queue should be stopped ..
-			if (isStarted && isInPool) {
+			if (!isStarted && isInPool) {
 				stop(original.getName());
 			}
 		}
