@@ -4,6 +4,7 @@ import com.spikeify.Spikeify;
 import com.spikeify.taskqueue.*;
 import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskState;
+import com.spikeify.taskqueue.entities.TaskStatistics;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -153,8 +154,9 @@ public class DefaultTaskQueueServiceTest {
 
 		assertEquals(10, ids.size());
 
-		int purged = service.purge(TaskState.finished, 0, QUEUE);
-		assertEquals(10, purged);
+		TaskStatistics purged = service.purge(TaskState.finished, 0, QUEUE);
+		assertNotNull(purged);
+		assertEquals(10, purged.getCount());
 
 		list = spikeify.scanAll(QueueTask.class).now();
 		assertEquals(0, list.size());

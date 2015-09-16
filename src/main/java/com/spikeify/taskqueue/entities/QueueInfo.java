@@ -6,7 +6,7 @@ import com.spikeify.taskqueue.utils.Assert;
 import com.spikeify.taskqueue.utils.JsonUtils;
 
 /**
- * Information and statistics about queues
+ * Information and running statistics about queues
  */
 public class QueueInfo {
 

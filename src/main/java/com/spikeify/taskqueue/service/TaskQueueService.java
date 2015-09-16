@@ -3,6 +3,7 @@ package com.spikeify.taskqueue.service;
 import com.spikeify.taskqueue.Job;
 import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskState;
+import com.spikeify.taskqueue.entities.TaskStatistics;
 
 import java.util.List;
 
@@ -28,7 +29,6 @@ public interface TaskQueueService {
 	 */
 	QueueTask next(String queueName);
 
-
 	/**
 	 * Lists all tasks from queue in given state
 	 *
@@ -51,9 +51,10 @@ public interface TaskQueueService {
 	/**
 	 * Removes tasks from queue
 	 *
-	 * @param state   of tasks to be removed
-	 * @param taskAge age in minutes to allow action, 0 == now or never
+	 * @param state     of tasks to be removed
+	 * @param taskAge   age in minutes to allow action, 0 == now or never
 	 * @param queueName name of queue
+	 * @return task statistics of removed tasks
 	 */
-	int purge(TaskState state, int taskAge, String queueName);
+	TaskStatistics purge(TaskState state, int taskAge, String queueName);
 }

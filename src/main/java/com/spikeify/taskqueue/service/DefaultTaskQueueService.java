@@ -9,6 +9,7 @@ import com.spikeify.taskqueue.Job;
 import com.spikeify.taskqueue.TaskQueueError;
 import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskState;
+import com.spikeify.taskqueue.entities.TaskStatistics;
 import com.spikeify.taskqueue.utils.Assert;
 
 import java.util.*;
@@ -211,24 +212,29 @@ public class DefaultTaskQueueService implements TaskQueueService {
 		return false;
 	}
 
-	 @Override
-	 public int purge(TaskState state, int taskAge, String queueName) {
+	@Override
+	public TaskStatistics purge(TaskState state, int taskAge, String queueName) {
 
 		Assert.notNull(state, "Missing job state!");
 		Assert.isTrue(state.canTransition(TaskState.purge), "Can't purge tasks in: " + state + " state!");
 
-		int count = 0;
 		List<QueueTask> list = list(state, queueName);
+
+		TaskStatistics.Builder statistics = new TaskStatistics.Builder();
+
 		for (QueueTask item : list) {
 
 			if (item.isLocked() && // task must be locked ... finished, or failed
 				item.isOlderThan(taskAge)) {
+
 				if (remove(item)) {
-					count++;
+
+					// calculate statistics ... min, max, average execution duration, average task age ...
+					statistics.include(item);
 				}
 			}
 		}
 
-		return count;
+		return statistics.build();
 	}
 }

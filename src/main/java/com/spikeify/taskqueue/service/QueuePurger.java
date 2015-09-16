@@ -1,6 +1,7 @@
 package com.spikeify.taskqueue.service;
 
 import com.spikeify.taskqueue.entities.TaskState;
+import com.spikeify.taskqueue.entities.TaskStatistics;
 
 import java.util.logging.Logger;
 
@@ -25,9 +26,12 @@ public class QueuePurger implements Runnable {
 	@Override
 	public void run() {
 
-		int count = queues.purge(state, age, queueName);
-		if (count > 0) {
-			log.info("[" + queueName + "] purge: " + count + " " + state + " task(s).");
+		TaskStatistics purge = queues.purge(state, age, queueName);
+		if (purge != null) {
+
+			log.info("[" + queueName + "] purge: " + purge.getCount() + " " + state + " task(s).");
+
+			// join this data with statistics from given queue
 		}
 	}
 }

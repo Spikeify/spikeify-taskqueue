@@ -4,10 +4,7 @@ import com.spikeify.Spikeify;
 import com.spikeify.Work;
 import com.spikeify.commands.AcceptFilter;
 import com.spikeify.taskqueue.TaskContext;
-import com.spikeify.taskqueue.entities.QueueInfoUpdater;
-import com.spikeify.taskqueue.entities.QueueInfo;
-import com.spikeify.taskqueue.entities.QueueSettings;
-import com.spikeify.taskqueue.entities.TaskState;
+import com.spikeify.taskqueue.entities.*;
 import com.spikeify.taskqueue.utils.Assert;
 
 import java.util.ArrayList;
@@ -46,7 +43,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	/**
 	 * Number of seconds waiting for a task to shut down gracefully
 	 */
-	static final long SHUTDOWN_TIME = 60;
+	static final long MAX_SHUTDOWN_TIME = 60;
 
 
 	private final Spikeify sfy;
@@ -256,6 +253,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 			for (String name : queueNames) {
 
 				QueueInfo queue = find(name);
+
 				Assert.notNull(queue, "Queue: " + name + ", is not registered!");
 				Assert.isTrue(queue.isEnabled(), "Queue: " + name + " is not enabled!");
 
@@ -300,7 +298,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 			// interrupt all running schedules if any
 			running.shutdown();
 
-			if (!running.awaitTermination(SHUTDOWN_TIME, TimeUnit.SECONDS)) {
+			if (!running.awaitTermination(MAX_SHUTDOWN_TIME, TimeUnit.SECONDS)) {
 				log.warning("Executor did not terminate in the specified time.");
 
 				List<Runnable> droppedTasks = running.shutdownNow();
