@@ -15,10 +15,10 @@ public interface TaskQueueManager {
 
 	/**
 	 * Lists queues registered
-	 * @param active - true list active queues, false - list disabled queues
+	 * @param active - true list active queues, false - list disabled queues, null - list all
 	 * @return list of registered queues
 	 */
-	List<QueueInfo> list(boolean active);
+	List<QueueInfo> list(Boolean active);
 
 	/**
 	 * Removes queue from monitoring
@@ -27,17 +27,37 @@ public interface TaskQueueManager {
 	void unregister(String queueName);
 
 	/**
-	 * Starts queue ...
+	 * Starts queues ... (on given JVM)
 	 * should be called only once per thread,
 	 * if called multiple times then threads are terminated and restated (acts as restart)
 	 *
-	 * @param queueName name of queue
+	 * @param queueNames names to be started or empty to start all enabled queues
 	 */
-	void start(String queueName) throws InterruptedException;
+	void start(String... queueNames) throws InterruptedException;
 
 	/**
-	 * Disables queue - stops all running tasks/threads
-	 * @param queueName to be stopped
+	 * Stops queues - stops all running tasks/threads (on given JVM)
+	 * @param queueNames to be stopped or empty to stop all enabled queues
 	 */
-	void stop(String queueName) throws InterruptedException;
+	void stop(String... queueNames) throws InterruptedException;
+
+	/**
+	 * Enables queue
+	 * @param queueName - enables queue to be run
+	 */
+	QueueInfo enable(String queueName);
+
+	/**
+	 * Disables queue - stops queue if running
+	 * @param queueName - disables queue from running
+	 */
+	QueueInfo disable(String queueName);
+
+	/**
+	 * Should be called on regular basis from each machine running queues
+	 * takes care that if one instance has started/stopped a queue it is also started/stopped on other machines
+	 *
+	 * Best invoked from a cron job or similar
+	 */
+	void check() throws InterruptedException;
 }

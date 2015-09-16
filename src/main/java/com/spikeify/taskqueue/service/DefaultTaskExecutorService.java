@@ -24,19 +24,12 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 	 * times a job is retrieved and tried to be started when given from a queue ... no job is executed
 	 */
 	private static final int MAX_START_RETRIES = 3;
-/*
-	*//**
-	 * Number of seconds executor waits for interrupt to perform his action
-	 *//*
-	private static final int MAX_INTERRUPT_WAIT = 5;*/
 
 	private final String queueName;
 	private final TaskQueueService queue;
 
-	/**
-	 * Job executed by instance of task executor service
-	 */
-	private static Job currentJob = null;
+	// current running job
+	private Job currentJob;
 
 	public DefaultTaskExecutorService(TaskQueueService queueService, String queueName) {
 
@@ -59,9 +52,8 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 		int retries = 0;
 
 		do {
-			// there is a task running ... return null ... execution must wait ...
 			if (currentJob != null) {
-				return null;
+				return null; // already executing ... wait
 			}
 
 			// 1. get next job to be executed (in running state)
@@ -77,11 +69,11 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 
 			// was successfully put in running state
 			if (started) {
+
 				// get job
 				currentJob = next.getJob();
 
 				try {
-
 					// 2. execute job
 					TaskResult result = currentJob.execute(context);
 
@@ -140,39 +132,8 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 		return null;
 	}
 
-	/**
-	 * Will interrupt a running job if any
-	 *
-	 * @return number of stopped tasks
-	 *//*
-	@Override
-	public void interrupt() {
-
-		// let's interrupt all running tasks ... if any
-		if (currentJob != null) {
-			currentJob.interrupt(); // signal was send ...
-
-			for (int i = 1; i <= MAX_INTERRUPT_WAIT; i++) {
-
-				// wait ... until job ends
-				if (!isRunning()) {
-					break;
-				}
-
-				try {
-					log.info("Waiting for job to interrupt (" + i + "/" + MAX_INTERRUPT_WAIT + ")");
-					Thread.sleep(1000);
-				}
-				catch (InterruptedException e) {
-					log.log(Level.WARNING, "Thread was interrupted!", e);
-				}
-			}
-		}
-	}*/
-
 	@Override
 	public boolean isRunning() {
-
 		return currentJob != null;
 	}
 }

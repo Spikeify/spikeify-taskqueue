@@ -4,6 +4,7 @@ import com.spikeify.Spikeify;
 import com.spikeify.taskqueue.LongRunningTask;
 import com.spikeify.taskqueue.TestHelper;
 import com.spikeify.taskqueue.TestTask;
+import com.spikeify.taskqueue.entities.QueueInfo;
 import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskState;
 import org.junit.Before;
@@ -11,7 +12,10 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static com.spikeify.taskqueue.service.DefaultTaskQueueManager.SLEEP_WAITING_FOR_TASKS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class DefaultTaskQueueManagerTest {
 
@@ -33,19 +37,43 @@ public class DefaultTaskQueueManagerTest {
 	}
 
 	@Test
-	public void testRegister() throws Exception {
+	public void testRegisterEnableDisableUnregister() throws Exception {
 
+		manager.register("test");
+		manager.register("test2");
+		manager.register("test3");
+
+		List<QueueInfo> list = manager.list(true);
+		assertEquals(3, list.size());
+
+		// nothing to do
+		manager.enable("test");
+
+		list = manager.list(true);
+		assertEquals(3, list.size());
+
+		manager.disable("test2");
+
+		list = manager.list(true);
+		assertEquals(2, list.size());
+
+		list = manager.list(false);
+		assertEquals(1, list.size());
+		QueueInfo queue = list.get(0);
+
+		assertFalse(queue.isEnabled());
+		assertFalse(queue.isStarted());
+
+		// queues are started if not started
+		manager.check();
+		list = manager.list(true);
+
+		for (QueueInfo info: list) {
+			assertTrue(info.isStarted());
+			assertTrue(info.getName().equals("test") || info.getName().equals("test3"));
+		}
 	}
 
-	@Test
-	public void testList() throws Exception {
-
-	}
-
-	@Test
-	public void testUnregister() throws Exception {
-
-	}
 
 	@Test
 	public void testStart() throws Exception {
@@ -60,7 +88,7 @@ public class DefaultTaskQueueManagerTest {
 		manager.start(QUEUE);
 
 		// wait for task to execute (5s most)
-		Thread.sleep(5000);
+		Thread.sleep(2000);
 
 
 		queues.add(new TestTask(4), QUEUE); // add one more tasks
@@ -72,7 +100,7 @@ public class DefaultTaskQueueManagerTest {
 		assertEquals(1, list.size());
 
 		// wait so task can finish (10s)
-		Thread.sleep(10000);
+		Thread.sleep(SLEEP_WAITING_FOR_TASKS * 1000);
 
 
 		list = queues.list(TaskState.finished, QUEUE);
@@ -93,14 +121,14 @@ public class DefaultTaskQueueManagerTest {
 
 		manager.start(QUEUE);
 
-		Thread.sleep(5000); // let at least 4 tasks finish
+		Thread.sleep(6000); // let at least 5 tasks finish
 
 		// let's stop
 		manager.stop(QUEUE);
 
 		// 15 are left in the queue
 		List<QueueTask> list = queues.list(TaskState.queued, QUEUE);
-		assertEquals(15, list.size());
+		assertEquals(14, list.size());
 
 		// 1 was interrupted
 		list = queues.list(TaskState.interrupted, QUEUE);
@@ -108,10 +136,51 @@ public class DefaultTaskQueueManagerTest {
 
 		// 4 manage to finish
 		list = queues.list(TaskState.finished, QUEUE);
-		assertEquals(4, list.size());
+		assertEquals(5, list.size());
 
 		// none should fail
 		list = queues.list(TaskState.failed, QUEUE);
 		assertEquals(0, list.size());
+	}
+
+	@Test
+	public void testMultipleMachinesRunningQueues() throws InterruptedException {
+
+		manager.register(QUEUE);
+
+		for (int i = 0; i < 100; i++) { // add a lot 1s tasks
+			// add some long running tasks
+			queues.add(new LongRunningTask(1000), QUEUE);
+		}
+
+		int MACHINES = 3;
+
+		DefaultTaskQueueManager[] manager = new DefaultTaskQueueManager[MACHINES];
+		for (int i = 0; i < MACHINES; i++) {
+			manager[i] = new DefaultTaskQueueManager(spikeify, queues);
+
+			if (i == 0) {
+				manager[i].start(QUEUE);
+			}
+			else {
+				manager[i].check();
+			}
+		}
+
+		// wait so task can finish (10s)
+		Thread.sleep(SLEEP_WAITING_FOR_TASKS * 1000);
+
+		for (int i = MACHINES - 1; i >= 0; i--) {
+			if (i == 0) {
+				manager[i].stop(QUEUE);
+			}
+			else {
+				manager[i].check();
+			}
+		}
+
+		// check how many tasks have been finished
+		List<QueueTask> list = queues.list(TaskState.finished, QUEUE);
+		assertTrue(list.size() >= (MACHINES * SLEEP_WAITING_FOR_TASKS) - (MACHINES * 3)); // at least so many task should have been finished
 	}
 }

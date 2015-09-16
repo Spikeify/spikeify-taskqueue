@@ -4,44 +4,58 @@ import com.spikeify.Spikeify;
 import com.spikeify.Work;
 import com.spikeify.commands.AcceptFilter;
 import com.spikeify.taskqueue.TaskContext;
+import com.spikeify.taskqueue.entities.IQueueInfoUpdater;
 import com.spikeify.taskqueue.entities.QueueInfo;
+import com.spikeify.taskqueue.entities.QueueSettings;
 import com.spikeify.taskqueue.entities.TaskState;
 import com.spikeify.taskqueue.utils.Assert;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Should be used as a singleton ...
+ * one instance per JVM
+ */
 public class DefaultTaskQueueManager implements TaskQueueManager {
 
 	public static final Logger log = Logger.getLogger(DefaultTaskExecutorService.class.getSimpleName());
 
 	/**
+	 * Number of seconds to wait before starting up scheduling
+	 */
+	static final long SLEEP_WAITING_FOR_START = 0;
+
+	/**
 	 * Number of seconds schedule sleeps when no tasks are available
 	 */
-	private static final long SLEEP_WAITING_FOR_TASKS = 10;
+	static final long SLEEP_WAITING_FOR_TASKS = 10;
 
 	/**
 	 * Number of seconds waiting to trigger purge action on queue
 	 */
-	private static final long SLEEP_WAITING_FOR_PURGE = 60;
+	static final long SLEEP_WAITING_FOR_PURGE = 60;
 
 	/**
 	 * Number of seconds waiting for a task to shut down gracefully
 	 */
-	private static final long SHUTDOWN_TIME = 60;
+	static final long SHUTDOWN_TIME = 60;
+
 
 	private final Spikeify sfy;
 	private final TaskQueueService queues;
 
 	/**
-	 * Thread pool storage ... single instance for each JVM
+	 * Thread pool storage ... single instance for each task manager
 	 */
-	private static final Map<String, ScheduledExecutorService> threadPool = new HashMap<>();
+	private final Map<String, ScheduledExecutorService> threadPool = new HashMap<>();
 
 	public DefaultTaskQueueManager(Spikeify spikeify,
 								   TaskQueueService queueService) {
@@ -82,13 +96,13 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	}
 
 	@Override
-	public List<QueueInfo> list(boolean active) {
+	public List<QueueInfo> list(Boolean active) {
 
 		return sfy.scanAll(QueueInfo.class).filter(new AcceptFilter<QueueInfo>() {
 			@Override
 			public boolean accept(QueueInfo queueInfo) {
 
-				return active == queueInfo.isEnabled();
+				return (active == null || active == queueInfo.isEnabled());
 			}
 		}).now();
 	}
@@ -98,73 +112,179 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 
 		QueueInfo found = find(queueName);
 
-		if (found != null) {
-			log.info("Queue: " + queueName + ", unregistered!");
-			sfy.delete(found).now();
+		try {
+
+			stop(queueName);
+
+			// clean all tasks from queue ... none should be running anymore
+			queues.purge(TaskState.queued, 0, queueName);
+			queues.purge(TaskState.failed, 0, queueName);
+			queues.purge(TaskState.finished, 0, queueName);
+			queues.purge(TaskState.interrupted, 0, queueName);
+
+			if (found != null) {
+				log.info("Queue: " + queueName + ", unregistered!");
+				sfy.delete(found).now();
+			}
+
+		}
+		catch (InterruptedException e) {
+			log.log(Level.SEVERE, "Failed to stop queue: " + queueName + ", can't unregister!", e);
 		}
 	}
 
 	@Override
-	public void start(String queueName) throws InterruptedException {
+	public void start(String... queueNames) throws InterruptedException {
 
-		QueueInfo found = find(queueName);
-		Assert.notNull(found, "Queue: " + queueName + ", is not registered!");
+		List<QueueInfo> found = getQueues(queueNames);
 
-		// enable queue
-		found = save(found, true);
+		for (QueueInfo queue : found) {
 
-		String name = found.getName();
+			String name = queue.getName();
+			QueueSettings settings = queue.getSettings();
 
-		// stop thread running if any ...
-		stopRunningThreads(name);
+			startQueue(name, true);
 
-		// will start x-threads per queue and monitor them (every 10 seconds)
-		ScheduledThreadPoolExecutor executorService = new ScheduledThreadPoolExecutor(found.getSettings().getMaxThreads());
+			// stop thread running if any ...
+			stopRunningThreads(name);
 
-		// queue execution
-		TaskContext context = new TaskThreadPoolContext(executorService);
+			// will start x-threads per queue and monitor them (every 10 seconds)
+			ScheduledThreadPoolExecutor executorService = new ScheduledThreadPoolExecutor(settings.getMaxThreads());
 
-		executorService.scheduleAtFixedRate(new QueueScheduler(queues, name, context),
-											0,
-											SLEEP_WAITING_FOR_TASKS,
-											TimeUnit.SECONDS);
+			// queue execution
+			TaskContext context = new TaskThreadPoolContext(executorService);
 
-		// failed task purging
-		executorService.scheduleAtFixedRate(new QueuePurger(queues, name, TaskState.failed, found.getSettings().getPurgeFailedAfterMinutes()),
-											SLEEP_WAITING_FOR_PURGE,
-											SLEEP_WAITING_FOR_PURGE,
-											TimeUnit.SECONDS);
+			executorService.scheduleAtFixedRate(new QueueScheduler(queues, name, context),
+												SLEEP_WAITING_FOR_START,
+												SLEEP_WAITING_FOR_TASKS,
+												TimeUnit.SECONDS);
 
-		// finished task purging
-		executorService.scheduleAtFixedRate(new QueuePurger(queues, name, TaskState.finished, found.getSettings().getPurgeSuccessfulAfterMinutes()),
-											SLEEP_WAITING_FOR_PURGE,
-											SLEEP_WAITING_FOR_PURGE,
-											TimeUnit.SECONDS);
+			// failed task purging
+			executorService.scheduleAtFixedRate(new QueuePurger(queues, name, TaskState.failed, settings.getPurgeFailedAfterMinutes()),
+												SLEEP_WAITING_FOR_PURGE,
+												SLEEP_WAITING_FOR_PURGE,
+												TimeUnit.SECONDS);
 
-		// store execution into thread pool by queue name
-		threadPool.put(name, executorService);
+			// finished task purging
+			executorService.scheduleAtFixedRate(new QueuePurger(queues, name, TaskState.finished, settings.getPurgeSuccessfulAfterMinutes()),
+												SLEEP_WAITING_FOR_PURGE,
+												SLEEP_WAITING_FOR_PURGE,
+												TimeUnit.SECONDS);
+
+			// store execution into thread pool by queue name
+			threadPool.put(name, executorService);
+			log.info("Started queue: " + name);
+		}
 	}
 
 	@Override
-	public void stop(String queueName) throws InterruptedException {
+	public void stop(String... queueNames) throws InterruptedException {
 
-		QueueInfo found = find(queueName);
-		Assert.notNull(found, "Queue: " + queueName + " is not registered!");
+		List<QueueInfo> found = getQueues(queueNames);
 
-		// disabled queue
-		found = save(found, false);
+		for (QueueInfo queue : found) {
 
-		stopRunningThreads(found.getName());
+			String name = queue.getName();
+			startQueue(name, false);
+
+			stopRunningThreads(name);
+			log.info("Stopped queue: " + name);
+		}
 	}
 
-	private QueueInfo save(QueueInfo found, boolean enabled) {
+	@Override
+	public QueueInfo enable(String queueName) {
+
+		return save(queueName, new IQueueInfoUpdater() {
+			@Override
+			public void update(QueueInfo info) {
+
+				info.setEnabled(true);
+			}
+		});
+	}
+
+	@Override
+	public QueueInfo disable(String queueName) {
+
+		return save(queueName, new IQueueInfoUpdater() {
+			@Override
+			public void update(QueueInfo info) {
+
+				info.setEnabled(false);
+				// set start false will trigger queue stop when check is called
+				info.setStarted(false);
+			}
+		});
+	}
+
+	@Override
+	public void check() throws InterruptedException {
+
+		List<QueueInfo> queues = list(true); // only enabled queues are "checked"
+
+		// check if all queues are started on this JVM
+		for (QueueInfo info : queues) {
+
+			// get latest from database
+			QueueInfo original = sfy.get(QueueInfo.class).key(info.getName()).now();
+
+			boolean isStarted = original.isStarted();
+			boolean isInPool = threadPool.containsKey(original.getName());
+
+			// queue should be started but is not
+			if (!isStarted && !isInPool) {
+				start(original.getName());
+				continue;
+			}
+
+			// queue should be stopped ..
+			if (isStarted && isInPool) {
+				stop(original.getName());
+			}
+		}
+	}
+
+	private List<QueueInfo> getQueues(String... queueNames) {
+
+		if (queueNames == null || queueNames.length == 0) {
+			return list(true);
+		}
+		else {
+			ArrayList<QueueInfo> list = new ArrayList<>();
+
+			for (String name : queueNames) {
+
+				QueueInfo queue = find(name);
+				Assert.notNull(queue, "Queue: " + name + ", is not registered!");
+				Assert.isTrue(queue.isEnabled(), "Queue: " + name + " is not enabled!");
+
+				list.add(queue);
+			}
+
+			return list;
+		}
+	}
+
+	private QueueInfo startQueue(final String queueName, boolean start) {
+
+		return save(queueName, new IQueueInfoUpdater() {
+			@Override
+			public void update(QueueInfo info) {
+
+				info.setStarted(start);
+			}
+		});
+	}
+
+	private QueueInfo save(String queueName, IQueueInfoUpdater updater) {
 
 		return sfy.transact(5, new Work<QueueInfo>() {
 			@Override
 			public QueueInfo run() {
 
-				QueueInfo original = sfy.get(QueueInfo.class).key(found.getName()).now();
-				original.setEnabled(enabled);
+				QueueInfo original = sfy.get(QueueInfo.class).key(queueName).now();
+				updater.update(original);
 
 				sfy.update(original).now();
 				return original;

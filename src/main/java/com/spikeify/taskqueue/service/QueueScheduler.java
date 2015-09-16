@@ -38,6 +38,7 @@ public class QueueScheduler implements Runnable {
 
 		int successCount = 0;
 		int allCount = 0;
+		boolean interrupted = false;
 
 		TaskResult result;
 
@@ -48,7 +49,7 @@ public class QueueScheduler implements Runnable {
 			if (result != null) {
 
 				if (TaskResultState.interrupted.equals(result.getState())) {
-					log.info("Task execution was interrupted ...");
+					interrupted = true;
 					break;
 				}
 
@@ -61,7 +62,12 @@ public class QueueScheduler implements Runnable {
 		}
 		while (result != null);
 
-		log.info("No tasks found, stopping after: " + successCount + "/" + allCount + " execution(s).");
+		if (interrupted) {
+			log.info("Interrupted after: " + successCount + "/" + allCount + " execution(s).");
+		}
+		else {
+			log.info("No tasks found, stopping after: " + successCount + "/" + allCount + " execution(s).");
+		}
 	}
 
 	private TaskContext getContext() {

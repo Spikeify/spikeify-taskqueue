@@ -22,10 +22,16 @@ public class QueueInfo {
 	protected String queueSettings;
 
 	/**
-	 * true - queue is enabled,
-	 * false - queue is disabled
+	 * true - queue is enabled - can be started and stopped,
+	 * false - queue is disabled - can not be started or stopped
 	 */
 	protected boolean enabled;
+
+	/**
+	 * true - queue is started (is running or should be running)
+	 * false - queue is stopped (is not running or shouldn't be running)
+	 */
+	protected boolean started;
 
 	protected QueueInfo() {
 		// for Spikeify
@@ -36,7 +42,7 @@ public class QueueInfo {
 		Assert.notNullOrEmpty(queueName, "Missing queue name!");
 
 		// default settings
-		enabled = false;
+		enabled = true;
 		name = queueName.trim();
 
 		setSettings(new QueueSettings());
@@ -44,49 +50,48 @@ public class QueueInfo {
 /*
 
 	*/
-/**
+	/**
 	 * Queued tasks in queue
 	 *//*
 
 	protected long queuedTasks;
 
 	*/
-/**
+	/**
 	 * Currently running tasks
 	 *//*
 
 	protected long runningTasks;
 
 	*/
-/**
+	/**
 	 * Failed task
 	 *//*
 
 	protected long failedTasks;
 
 	*/
-/**
+	/**
 	 * Successfully completed tasks
 	 *//*
 
 	protected long completedTasks;
 
 	*/
-/**
+	/**
 	 * Average task execution duration in ms
 	 *//*
 
 	protected long executionDuration;
 
 	*/
-/**
+
+	/**
 	 * Average task waiting time in ms
 	 *//*
 
 	protected long waitingDuration;
 */
-
-
 	public String getName() {
 
 		return name;
@@ -108,6 +113,17 @@ public class QueueInfo {
 	}
 
 	public void setEnabled(boolean active) {
+
 		enabled = active;
+	}
+
+	public boolean isStarted() {
+
+		return started;
+	}
+
+	public void setStarted(boolean start) {
+
+		started = start;
 	}
 }

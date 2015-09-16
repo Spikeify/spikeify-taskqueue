@@ -20,9 +20,5 @@ public interface TaskExecutorService {
 	 */
 	TaskResult execute(TaskContext context);
 
-	/**
-	 * Indicator that a job is being executed (is running)
-	 * @return true if job is being executed, false if no job is executed
-	 */
 	boolean isRunning();
 }

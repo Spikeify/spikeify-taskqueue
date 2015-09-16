@@ -12,7 +12,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class MultithreadTaskExecutorServiceTest {
@@ -451,29 +450,14 @@ public class MultithreadTaskExecutorServiceTest {
 
 		Thread.sleep(1000);
 
-		assertTrue(executor.isRunning());
-
 		// send interrupt signal to task
 		context.interruptTask();
 
 		// let's wait some time
-		for (int i = 1; i <= 5; i++) {
+		Thread.sleep(5000);
 
-			// wait ... until job ends
-			if (!executor.isRunning()) {
-				break;
-			}
-
-			try {
-				log.info("Waiting for job to interrupt (" + i + "/" + 5 + ")");
-				Thread.sleep(1000);
-			}
-			catch (InterruptedException e) {
-
-			}
-		}
-
-		assertFalse(executor.isRunning());
+		List<QueueTask> list = service.list(TaskState.interrupted, QUEUE);
+		assertEquals(1, list.size());
 	}
 
 	private int execute(TaskExecutorService service, AtomicInteger completed, AtomicInteger failed) {
