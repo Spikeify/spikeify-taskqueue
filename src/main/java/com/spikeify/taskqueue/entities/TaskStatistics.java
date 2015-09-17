@@ -2,18 +2,18 @@ package com.spikeify.taskqueue.entities;
 
 public class TaskStatistics {
 
-	private long count;
+	protected long count;
 
-	private long minJobRunTime;
-	private long maxJobRunTime;
-	private long totalJobRunTime;
+	protected long minJobRunTime;
+	protected long maxJobRunTime;
+	protected long totalJobRunTime;
 
-	private long minExecutionTime;
-	private long maxExecutionTime;
-	private long totalExecutionTime;
+	protected long minExecutionTime;
+	protected long maxExecutionTime;
+	protected long totalExecutionTime;
 
-	private long averageJobRunTime;
-	private long averageExecutionTime;
+	protected long averageJobRunTime;
+	protected long averageExecutionTime;
 
 	public long getCount() {
 
@@ -126,25 +126,21 @@ public class TaskStatistics {
 		public TaskStatistics buildWith(TaskStatistics previous) {
 
 			if (count > 0 && previous.count > 0) {
-				averageJobRunTime = previous.getAverageJobRunTime() * ((previous.count + count) / previous.count) + (totalJobRunTime / count);
-				averageExecutionTime = previous.getAverageExecutionTime() * ((previous.count + count) / previous.count) + (totalExecutionTime / count);
 
-				count = count + previous.count;
-
+				totalJobRunTime = totalJobRunTime + previous.getTotalJobRunTime();
 				totalExecutionTime = totalExecutionTime + previous.getTotalExecutionTime();
-				totalJobRunTime = totalJobRunTime + previous.getTotalExecutionTime();
+				count = count + previous.count;
 
 				setMinMaxExecutionTime(previous.getMinExecutionTime());
 				setMinMaxExecutionTime(previous.getMaxExecutionTime());
 
 				setMinMaxJobRunTime(previous.getMinJobRunTime());
 				setMinMaxJobRunTime(previous.getMaxJobRunTime());
+
+				calculateAverage();
 			}
 
 			return getTaskStatistics();
-			/*m = število novih
-			n = število starih
-			new average =old average * (n-m)/n + sum of new value/n).*/
 		}
 
 		private void setMinMaxExecutionTime(Long jobExecutionTime) {
