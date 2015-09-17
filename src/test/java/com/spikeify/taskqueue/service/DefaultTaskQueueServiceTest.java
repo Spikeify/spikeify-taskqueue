@@ -82,6 +82,7 @@ public class DefaultTaskQueueServiceTest {
 		// Simple single threaded get next test ... put and get
 		TaskQueueService service = new DefaultTaskQueueService(spikeify);
 		DefaultTaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
+		manager.register(QUEUE);
 
 		for (int i = 0; i < 5; i++) {
 			// add multiple tasks to queue "test"
@@ -157,6 +158,7 @@ public class DefaultTaskQueueServiceTest {
 		TaskQueueService service = new DefaultTaskQueueService(spikeify);
 		TaskExecutorService executor = new DefaultTaskExecutorService(service, QUEUE);
 		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
+		manager.register(QUEUE);
 
 		// add tasks to queue
 		int NUMBER_OF_JOBS = 10;
@@ -195,8 +197,13 @@ public class DefaultTaskQueueServiceTest {
 		assertEquals(0, info.getFinishedTasks());
 		assertEquals(10, info.getTotalFinished());
 
+		TaskStatistics stats = info.getStatistics(TaskState.finished);
+
+
 		list = spikeify.scanAll(QueueTask.class).now();
 		assertEquals(0, list.size());
+
+
 	}
 
 	private int execute(TaskExecutorService service, AtomicInteger completed, AtomicInteger failed) {

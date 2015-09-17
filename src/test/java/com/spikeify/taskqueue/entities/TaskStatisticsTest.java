@@ -1,5 +1,6 @@
 package com.spikeify.taskqueue.entities;
 
+import com.spikeify.taskqueue.utils.JsonUtils;
 import org.junit.*;
 
 import static org.junit.Assert.assertEquals;
@@ -82,36 +83,64 @@ public class TaskStatisticsTest {
 
 		// Let's join those two
 		TaskStatistics firstAndSecond = builder.buildWith(second);
-		assertEquals(5L, firstAndSecond .getCount());
-		assertEquals(2000L, firstAndSecond .getMaxJobRunTime());
-		assertEquals(100L, firstAndSecond .getMinJobRunTime());
+		assertEquals(5L, firstAndSecond.getCount());
+		assertEquals(2000L, firstAndSecond.getMaxJobRunTime());
+		assertEquals(100L, firstAndSecond.getMinJobRunTime());
 
 		// (1000 + 2000 + 100 + 200 + 300) / 5
-		assertEquals(720L, firstAndSecond .getAverageJobRunTime());
-		assertEquals(3600L, firstAndSecond .getTotalJobRunTime());
+		assertEquals(720L, firstAndSecond.getAverageJobRunTime());
+		assertEquals(3600L, firstAndSecond.getTotalJobRunTime());
 
-		assertEquals(2200, firstAndSecond .getMaxExecutionTime());
-		assertEquals(200L, firstAndSecond .getMinExecutionTime());
+		assertEquals(2200, firstAndSecond.getMaxExecutionTime());
+		assertEquals(200L, firstAndSecond.getMinExecutionTime());
 
 		// (1100 + 2200 + 200 + 400 + 600) / 5
-		assertEquals(900L, firstAndSecond .getAverageExecutionTime());
-		assertEquals(4500L, firstAndSecond .getTotalExecutionTime());
+		assertEquals(900L, firstAndSecond.getAverageExecutionTime());
+		assertEquals(4500L, firstAndSecond.getTotalExecutionTime());
 
 		// SHOULD BE THE SAME
 		firstAndSecond = builder2.buildWith(statistics);
-		assertEquals(5L, firstAndSecond .getCount());
-		assertEquals(2000L, firstAndSecond .getMaxJobRunTime());
-		assertEquals(100L, firstAndSecond .getMinJobRunTime());
+		assertEquals(5L, firstAndSecond.getCount());
+		assertEquals(2000L, firstAndSecond.getMaxJobRunTime());
+		assertEquals(100L, firstAndSecond.getMinJobRunTime());
 
 		// (1000 + 2000 + 100 + 200 + 300) / 5
-		assertEquals(720L, firstAndSecond .getAverageJobRunTime());
-		assertEquals(3600L, firstAndSecond .getTotalJobRunTime());
+		assertEquals(720L, firstAndSecond.getAverageJobRunTime());
+		assertEquals(3600L, firstAndSecond.getTotalJobRunTime());
 
-		assertEquals(2200, firstAndSecond .getMaxExecutionTime());
-		assertEquals(200L, firstAndSecond .getMinExecutionTime());
+		assertEquals(2200, firstAndSecond.getMaxExecutionTime());
+		assertEquals(200L, firstAndSecond.getMinExecutionTime());
 
 		// (1100 + 2200 + 200 + 400 + 600) / 5
-		assertEquals(900L, firstAndSecond .getAverageExecutionTime());
-		assertEquals(4500L, firstAndSecond .getTotalExecutionTime());
+		assertEquals(900L, firstAndSecond.getAverageExecutionTime());
+		assertEquals(4500L, firstAndSecond.getTotalExecutionTime());
+	}
+
+	@Test
+	public void fromToJsonTest() {
+
+		QueueTask task = new QueueTask();
+		task.jobRunTime = 1000L;
+		task.executionTime = 1100L;
+
+		TaskStatistics.Builder builder = new TaskStatistics.Builder();
+		builder.include(task);
+
+		TaskStatistics statistics = builder.build();
+
+		// to JSON and back
+		String json = JsonUtils.toJson(statistics);
+		TaskStatistics second = JsonUtils.fromJson(json, TaskStatistics.class);
+
+		assertEquals(statistics.count, second.count);
+		assertEquals(statistics.minJobRunTime, second.minJobRunTime);
+		assertEquals(statistics.maxJobRunTime, second.maxJobRunTime);
+		assertEquals(statistics.totalJobRunTime, second.totalJobRunTime);
+		assertEquals(statistics.averageJobRunTime, second.averageJobRunTime);
+
+		assertEquals(statistics.minExecutionTime, second.minExecutionTime);
+		assertEquals(statistics.maxExecutionTime, second.maxExecutionTime);
+		assertEquals(statistics.totalExecutionTime, second.totalExecutionTime);
+		assertEquals(statistics.averageExecutionTime, second.averageExecutionTime);
 	}
 }

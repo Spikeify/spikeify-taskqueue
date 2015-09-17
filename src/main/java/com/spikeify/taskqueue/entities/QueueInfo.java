@@ -4,6 +4,9 @@ import com.spikeify.annotations.Generation;
 import com.spikeify.annotations.UserKey;
 import com.spikeify.taskqueue.utils.Assert;
 import com.spikeify.taskqueue.utils.JsonUtils;
+import com.spikeify.taskqueue.utils.StringUtils;
+
+import java.util.HashMap;
 
 /**
  * Information and running statistics about queues
@@ -53,8 +56,14 @@ public class QueueInfo {
 	// total number of retries - from failed to running transition
 	protected long totalRetries;
 
+	/**
+	 * JSON serialized map of statistics data {@link TaskState} {@link TaskStatistics}
+	 **/
+	protected HashMap<TaskState, String> statistics;
+
 	protected QueueInfo() {
 		// for Spikeify
+		reset();
 	}
 
 	public QueueInfo(String queueName) {
@@ -66,54 +75,8 @@ public class QueueInfo {
 		name = queueName.trim();
 
 		setSettings(new QueueSettings());
+		reset();
 	}
-/*
-
-	*/
-	/**
-	 * Queued tasks in queue
-	 *//*
-
-	protected long queuedTasks;
-
-	*/
-	/**
-	 * Currently running tasks
-	 *//*
-
-	protected long runningTasks;
-
-	*/
-	/**
-	 * Failed task
-	 *//*
-
-	protected long failedTasks;
-
-	*/
-	/**
-	 * Successfully completed tasks
-	 *//*
-
-	protected long completedTasks;
-
-	*/
-	/**
-	 * Average task execution duration in ms
-	 *//*
-
-	protected long executionDuration;
-
-	*/
-
-	/**
-	 * Average task waiting time in ms
-	 *//*
-
-	protected long waitingDuration;
-*/
-
-
 
 	public String getName() {
 
@@ -158,7 +121,8 @@ public class QueueInfo {
 		totalFailed = 0;
 		totalRetries = 0;
 
-		// TODO: add purge statistics when available
+		// purge statistics if available
+		statistics = new HashMap<>();
 	}
 
 	public long getQueuedTasks() {
@@ -209,5 +173,35 @@ public class QueueInfo {
 	public long getTotalRetries() {
 
 		return totalRetries;
+	}
+
+	public TaskStatistics getStatistics(TaskState state) {
+
+		String json = statistics.get(state);
+		if (StringUtils.isNullOrEmptyTrimmed(json)) {
+			return null;
+		}
+
+		return JsonUtils.fromJson(json, TaskStatistics.class);
+	}
+
+	public void setStatistics(TaskState state, TaskStatistics output) {
+
+		if (state != null && output != null) {
+
+			TaskStatistics old = getStatistics(state);
+			if (old != null) {
+
+				TaskStatistics.Builder builder = new TaskStatistics.Builder();
+				TaskStatistics joined = builder.include(old).buildWith(output);
+
+				String json = JsonUtils.toJson(joined);
+				statistics.put(state, json);
+			}
+			else {
+				String json = JsonUtils.toJson(output);
+				statistics.put(state, json);
+			}
+		}
 	}
 }

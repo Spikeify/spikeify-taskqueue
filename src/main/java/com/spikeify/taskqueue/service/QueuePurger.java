@@ -30,8 +30,6 @@ public class QueuePurger implements Runnable {
 		if (purge != null) {
 
 			log.info("[" + queueName + "] purge: " + purge.getCount() + " " + state + " task(s).");
-
-			// join this data with statistics from given queue
 		}
 	}
 }

@@ -104,6 +104,27 @@ public class TaskStatistics {
 			}
 		}
 
+		public Builder include(TaskStatistics old) {
+
+			if (old == null)
+				return this;
+
+			if (old.count > 0) {
+
+				totalJobRunTime = totalJobRunTime + old.getTotalJobRunTime();
+				totalExecutionTime = totalExecutionTime + old.getTotalExecutionTime();
+				count = count + old.count;
+
+				setMinMaxExecutionTime(old.getMinExecutionTime());
+				setMinMaxExecutionTime(old.getMaxExecutionTime());
+
+				setMinMaxJobRunTime(old.getMinJobRunTime());
+				setMinMaxJobRunTime(old.getMaxJobRunTime());
+			}
+
+			return this;
+		}
+
 		/**
 		 * calculates average according to included items
 		 * @return statistics or null if no items were included
@@ -127,16 +148,7 @@ public class TaskStatistics {
 
 			if (count > 0 && previous.count > 0) {
 
-				totalJobRunTime = totalJobRunTime + previous.getTotalJobRunTime();
-				totalExecutionTime = totalExecutionTime + previous.getTotalExecutionTime();
-				count = count + previous.count;
-
-				setMinMaxExecutionTime(previous.getMinExecutionTime());
-				setMinMaxExecutionTime(previous.getMaxExecutionTime());
-
-				setMinMaxJobRunTime(previous.getMinJobRunTime());
-				setMinMaxJobRunTime(previous.getMaxJobRunTime());
-
+				include(previous);
 				calculateAverage();
 			}
 

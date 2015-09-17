@@ -75,7 +75,6 @@ public class DefaultTaskQueueService implements TaskQueueService {
 
 		setQueueInfoCount(queueName, null, TaskState.queued);
 
-
 		// create id ... add job ...
 		return task;
 	}
@@ -203,7 +202,13 @@ public class DefaultTaskQueueService implements TaskQueueService {
 
 	private void setQueueInfoCount(String queue, TaskState oldState, TaskState newState) {
 
+		QueueInfo exists = sfy.get(QueueInfo.class).key(queue).now();
+		if (exists == null) {
+			return;
+		}
+
 		try {
+
 			// atomic counting of tasks in queue position
 			if (oldState != null) {
 				sfy.command(QueueInfo.class).key(queue).add(oldState.name(), -1).now();
@@ -284,6 +289,27 @@ public class DefaultTaskQueueService implements TaskQueueService {
 			}
 		}
 
-		return statistics.build();
+		// join statistic in QueueInfo ... if any
+		TaskStatistics output = statistics.build();
+		setQueueInfoStatistics(state, queueName, output);
+
+		return output;
+	}
+
+	private void setQueueInfoStatistics(final TaskState state, final String queueName, final TaskStatistics output) {
+
+		sfy.transact(5, new Work<QueueInfo>() {
+			@Override
+			public QueueInfo run() {
+
+				QueueInfo original = sfy.get(QueueInfo.class).key(queueName).now();
+				if (original == null) {
+					return null;
+				}
+
+				original.setStatistics(state, output);
+				sfy.update(original).now();
+				return original;
+			}});
 	}
 }
