@@ -16,7 +16,6 @@ import static org.junit.Assert.assertTrue;
 
 public class QueueTaskTest {
 
-	public static String QUEUE = "test";
 
 	private Spikeify spikeify;
 
@@ -35,6 +34,8 @@ public class QueueTaskTest {
 
 	@Test
 	public void createSimpleTask() {
+
+		String QUEUE = "createSimpleTask";
 
 		TestTask job = new TestTask(0);
 		QueueTask task = new QueueTask(job, QUEUE);
@@ -58,6 +59,8 @@ public class QueueTaskTest {
 	@Test(expected = TaskQueueError.class)
 	public void invalidClassType() {
 
+		String QUEUE = "invalidClassType";
+
 		TestTask job = new TestTask(0);
 		QueueTask task = new QueueTask(job, QUEUE);
 
@@ -79,6 +82,8 @@ public class QueueTaskTest {
 	@Test(expected = TaskQueueError.class)
 	public void unknownClassType() {
 
+		String QUEUE = "unknownClassType";
+
 		TestTask job = new TestTask(0);
 		QueueTask task = new QueueTask(job, QUEUE);
 
@@ -98,6 +103,8 @@ public class QueueTaskTest {
 
 	@Test(expected = TaskQueueError.class)
 	public void invalidInstanceClassType() {
+
+		String QUEUE = "invalidInstanceClassType";
 
 		TestTask job = new TestTask(0);
 		QueueTask task = new QueueTask(job, QUEUE);

@@ -13,8 +13,6 @@ import static org.junit.Assert.assertNull;
 
 public class DefaultTaskExecutorServiceTest {
 
-	private static final String QUEUE = "default";
-
 	private Spikeify spikeify;
 
 	@Before
@@ -32,6 +30,8 @@ public class DefaultTaskExecutorServiceTest {
 
 	@Test
 	public void testContentionOnTask() throws Exception {
+
+		String QUEUE = "testContentionOnTask";
 
 		TaskQueueService queueService = new DefaultTaskQueueService(spikeify);
 		TaskQueueService spiedQueueService = Mockito.spy(queueService);
@@ -59,6 +59,8 @@ public class DefaultTaskExecutorServiceTest {
 
 	@Test
 	public void testMaxRetriesOnFailingTask() {
+
+		String QUEUE = "testMaxRetriesOnFailingTask";
 
 		TaskQueueService queueService = new DefaultTaskQueueService(spikeify);
 		TaskQueueService spiedQueueService = Mockito.spy(queueService);

@@ -2,6 +2,7 @@ package com.spikeify.taskqueue.service;
 
 import com.spikeify.Spikeify;
 import com.spikeify.taskqueue.*;
+import com.spikeify.taskqueue.entities.QueueInfo;
 import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskResultState;
 import com.spikeify.taskqueue.entities.TaskState;
@@ -20,14 +21,6 @@ public class MultithreadTaskExecutorServiceTest {
 
 	Logger log = Logger.getLogger(MultithreadTaskExecutorServiceTest.class.getSimpleName());
 
-	private static final String QUEUE1 = "test1";
-	private static final String QUEUE2 = "test2";
-	private static final String QUEUE3 = "test3";
-	private static final String QUEUE4 = "test4";
-	private static final String QUEUE5 = "test5";
-	private static final String QUEUE6 = "test6";
-	private static final String QUEUE7 = "test7";
-
 	private Spikeify spikeify;
 
 	@Before
@@ -40,35 +33,45 @@ public class MultithreadTaskExecutorServiceTest {
 	@After
 	public void tearDown() {
 
-		spikeify.truncateNamespace("test");
+		//spikeify.truncateNamespace("test");
 	}
 
 	@Test
 	public void runSingleExecutor() {
 
+		String QUEUE = "runSingleExecutor";
+
 		AtomicInteger completed = new AtomicInteger(0);
 		AtomicInteger failed = new AtomicInteger(0);
 
-		DefaultTaskQueueService service = new DefaultTaskQueueService(spikeify);
-		DefaultTaskExecutorService executor = new DefaultTaskExecutorService(service, QUEUE1);
+		TaskQueueService service = new DefaultTaskQueueService(spikeify);
+		TaskExecutorService executor = new DefaultTaskExecutorService(service, QUEUE);
+		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
 
 		int NUMBER_OF_JOBS = 100;
 
 		// add tasks to queue
 		for (int i = 0; i < NUMBER_OF_JOBS; i++) {
 			Job dummy = new TestTask(i);
-			service.add(dummy, QUEUE1);
+			service.add(dummy, QUEUE);
 		}
+
+		QueueInfo info = manager.info(QUEUE);
+		assertEquals(NUMBER_OF_JOBS, info.getQueuedTasks());
 
 		int count = execute(executor, completed, failed);
 		assertEquals(NUMBER_OF_JOBS, count);
 		assertEquals(NUMBER_OF_JOBS, completed.get());
 		assertEquals(0, failed.get());
+
+		info = manager.info(QUEUE);
+		assertEquals(NUMBER_OF_JOBS, info.getFinishedTasks());
 	}
 
 	@Test
 	public void runMultipleExecutors() throws Exception {
 
+		String QUEUE = "runMultipleExecutors";
 		AtomicInteger completed = new AtomicInteger(0);
 		AtomicInteger failed = new AtomicInteger(0);
 
@@ -80,7 +83,7 @@ public class MultithreadTaskExecutorServiceTest {
 		// add tasks to queue
 		for (int i = 0; i < NUMBER_OF_JOBS; i++) {
 			Job dummy = new TestTask(i);
-			service.add(dummy, QUEUE2);
+			service.add(dummy, QUEUE);
 		}
 
 		// create 3 workers
@@ -94,7 +97,7 @@ public class MultithreadTaskExecutorServiceTest {
 				@Override
 				public void run() {
 
-					TaskExecutorService worker = new DefaultTaskExecutorService(service, QUEUE2);
+					TaskExecutorService worker = new DefaultTaskExecutorService(service, QUEUE);
 					workCompleted[index] = execute(worker, completed, failed);
 				}
 			};
@@ -137,6 +140,7 @@ public class MultithreadTaskExecutorServiceTest {
 	@Test
 	public void runMoreWorkersThanJobs() throws Exception {
 
+		String QUEUE = "runMoreWorkersThanJobs";
 		AtomicInteger completed = new AtomicInteger(0);
 		AtomicInteger failed = new AtomicInteger(0);
 
@@ -148,7 +152,7 @@ public class MultithreadTaskExecutorServiceTest {
 		// add tasks to queue
 		for (int i = 0; i < NUMBER_OF_JOBS; i++) {
 			Job dummy = new TestTask(i);
-			service.add(dummy, QUEUE3);
+			service.add(dummy, QUEUE);
 		}
 
 		// create 3 workers
@@ -162,7 +166,7 @@ public class MultithreadTaskExecutorServiceTest {
 				@Override
 				public void run() {
 
-					TaskExecutorService worker = new DefaultTaskExecutorService(service, QUEUE3);
+					TaskExecutorService worker = new DefaultTaskExecutorService(service, QUEUE);
 					workCompleted[index] = execute(worker, completed, failed);
 				}
 			};
@@ -204,6 +208,7 @@ public class MultithreadTaskExecutorServiceTest {
 	@Test
 	public void retryFailedTasksTest() throws InterruptedException {
 
+		String QUEUE = "retryFailedTasksTest";
 		AtomicInteger completed = new AtomicInteger(0);
 		AtomicInteger failed = new AtomicInteger(0);
 		// add tasks to queue
@@ -214,7 +219,7 @@ public class MultithreadTaskExecutorServiceTest {
 
 		for (int i = 0; i < NUMBER_OF_JOBS; i++) {
 			Job dummy = new FailingTask(i); // job which will fail in case job number is dividable by 20
-			service.add(dummy, QUEUE4);
+			service.add(dummy, QUEUE);
 		}
 
 		// create 3 workers
@@ -228,7 +233,7 @@ public class MultithreadTaskExecutorServiceTest {
 				@Override
 				public void run() {
 
-					TaskExecutorService worker = new DefaultTaskExecutorService(service, QUEUE4);
+					TaskExecutorService worker = new DefaultTaskExecutorService(service, QUEUE);
 					workCompleted[index] = execute(worker, completed, failed);
 				}
 			};
@@ -283,6 +288,7 @@ public class MultithreadTaskExecutorServiceTest {
 	@Test
 	public void retryOrAbandonFailedTasksTest() throws InterruptedException {
 
+		String QUEUE = "retryOrAbandonFailedTasksTest";
 		AtomicInteger completed = new AtomicInteger(0);
 		AtomicInteger failed = new AtomicInteger(0);
 		// add tasks to queue
@@ -293,13 +299,13 @@ public class MultithreadTaskExecutorServiceTest {
 
 		for (int i = 0; i < NUMBER_OF_JOBS; i++) {
 			Job dummy = new FailingTask(i); // job which will fail in case job number is dividable by 20
-			service.add(dummy, QUEUE5);
+			service.add(dummy, QUEUE);
 
 			Job willFail = new FailOnlyTask();
-			service.add(willFail, QUEUE5);
+			service.add(willFail, QUEUE);
 
 			Job okTask = new TestTask(i);
-			service.add(okTask, QUEUE5);
+			service.add(okTask, QUEUE);
 		}
 
 		// create 3 workers
@@ -313,7 +319,7 @@ public class MultithreadTaskExecutorServiceTest {
 				@Override
 				public void run() {
 
-					TaskExecutorService worker = new DefaultTaskExecutorService(service, QUEUE5);
+					TaskExecutorService worker = new DefaultTaskExecutorService(service, QUEUE);
 					workCompleted[index] = execute(worker, completed, failed);
 				}
 			};
@@ -369,19 +375,21 @@ public class MultithreadTaskExecutorServiceTest {
 	@Test
 	public void retryFailingTasks() throws InterruptedException {
 
+		String QUEUE = "retryFailingTasks";
 		AtomicInteger completed = new AtomicInteger(0);
 		AtomicInteger failed = new AtomicInteger(0);
 		// add tasks to queue
 		int NUMBER_OF_JOBS = 200;
 		int WORKERS = 5;
 
-		DefaultTaskQueueService service = new DefaultTaskQueueService(spikeify);
+		TaskQueueService service = new DefaultTaskQueueService(spikeify);
+		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
 
 		// will always fail ...
 		for (int i = 0; i < NUMBER_OF_JOBS; i++) {
 
 			Job willFail = new FailOnlyTask();
-			service.add(willFail, QUEUE6);
+			service.add(willFail, QUEUE);
 		}
 
 		// create 3 workers
@@ -395,7 +403,7 @@ public class MultithreadTaskExecutorServiceTest {
 				@Override
 				public void run() {
 
-					TaskExecutorService worker = new DefaultTaskExecutorService(service, QUEUE6);
+					TaskExecutorService worker = new DefaultTaskExecutorService(service, QUEUE);
 					workCompleted[index] = execute(worker, completed, failed);
 				}
 			};
@@ -439,16 +447,21 @@ public class MultithreadTaskExecutorServiceTest {
 
 		// number of completed jobs should be same as number given jobs
 		assertEquals(0, total); // all failed
+
 		assertEquals("Invalid number of task retries", runCount, NUMBER_OF_JOBS * 3); // all task should be retried 3 times before abandon
+
+		QueueInfo info = manager.info(QUEUE);
+		assertEquals(NUMBER_OF_JOBS * 2, info.getTotalRetries()); // retries are less then run count
 	}
 
 	@Test
 	public void interruptLongRunningTask() throws InterruptedException {
 
+		String QUEUE = "interruptLongRunningTask";
 		DefaultTaskQueueService service = new DefaultTaskQueueService(spikeify);
-		DefaultTaskExecutorService executor = new DefaultTaskExecutorService(service, QUEUE7);
+		DefaultTaskExecutorService executor = new DefaultTaskExecutorService(service, QUEUE);
 
-		service.add(new LongRunningTask(), QUEUE7);
+		service.add(new LongRunningTask(), QUEUE);
 		final TestTaskContext context = new TestTaskContext();
 		final TaskResult[] result = new TaskResult[1];
 
@@ -475,12 +488,12 @@ public class MultithreadTaskExecutorServiceTest {
 		for (TaskState state: TaskState.values()) {
 
 			if (!TaskState.interrupted.equals(state)) {
-				List<QueueTask> list = service.list(state, QUEUE7);
+				List<QueueTask> list = service.list(state, QUEUE);
 				assertEquals("No task should be in: " + state + ", but found!", 0, list.size());
 			}
 		}
 
-		List<QueueTask> list = service.list(TaskState.interrupted, QUEUE7);
+		List<QueueTask> list = service.list(TaskState.interrupted, QUEUE);
 		assertEquals("No interrupted task found!", 1, list.size());
 	}
 

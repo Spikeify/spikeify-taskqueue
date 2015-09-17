@@ -2,6 +2,7 @@ package com.spikeify.taskqueue.service;
 
 import com.spikeify.Spikeify;
 import com.spikeify.taskqueue.*;
+import com.spikeify.taskqueue.entities.QueueInfo;
 import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskState;
 import com.spikeify.taskqueue.entities.TaskStatistics;
@@ -18,7 +19,6 @@ import static org.junit.Assert.*;
 
 public class DefaultTaskQueueServiceTest {
 
-	private static final String QUEUE = "test";
 	private Spikeify spikeify;
 
 	@Before
@@ -38,6 +38,10 @@ public class DefaultTaskQueueServiceTest {
 	public void testAdd() throws Exception {
 
 		TaskQueueService service = new DefaultTaskQueueService(spikeify);
+		DefaultTaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
+
+		String QUEUE = "testAdd";
+		manager.register(QUEUE);
 
 		Job dummy = new TestTask(0);
 
@@ -45,6 +49,12 @@ public class DefaultTaskQueueServiceTest {
 			// add multiple tasks to queue "test"
 			service.add(dummy, QUEUE);
 		}
+
+		// check queue info
+		QueueInfo info = manager.info(QUEUE);
+
+		assertEquals(5, info.getQueuedTasks());
+		assertEquals(0, info.getRunningTasks());
 
 		// list all tasks
 		List<QueueTask> list = spikeify.scanAll(QueueTask.class).now();
@@ -68,8 +78,10 @@ public class DefaultTaskQueueServiceTest {
 	@Test
 	public void testNext() throws Exception {
 
+		String QUEUE = "testNext";
 		// Simple single threaded get next test ... put and get
 		TaskQueueService service = new DefaultTaskQueueService(spikeify);
+		DefaultTaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
 
 		for (int i = 0; i < 5; i++) {
 			// add multiple tasks to queue "test"
@@ -77,12 +89,25 @@ public class DefaultTaskQueueServiceTest {
 			service.add(dummy, QUEUE);
 		}
 
+		QueueInfo info = manager.info(QUEUE);
+		assertEquals(5, info.getQueuedTasks());
+
 		for (int i = 0; i < 5; i++) {
 			QueueTask task = service.next(QUEUE);
 			assertNotNull(task);
 
 			service.transition(task, TaskState.running);
+
+			info = manager.info(QUEUE);
+			assertEquals(4 - i, info.getQueuedTasks());
+			assertEquals(1, info.getRunningTasks());
+
 			service.transition(task, TaskState.finished); // get it done ...
+
+			info = manager.info(QUEUE);
+			assertEquals(4 - i, info.getQueuedTasks());
+			assertEquals(0, info.getRunningTasks());
+			assertEquals(1 + i, info.getFinishedTasks());
 		}
 
 		assertNull(service.next(QUEUE)); // no tasks left
@@ -91,6 +116,7 @@ public class DefaultTaskQueueServiceTest {
 	@Test
 	public void testNextMultipleWorkers() throws Exception {
 
+		String QUEUE = "testNextMultipleWorkers";
 		// Simple single threaded get next test ... put and get
 		TaskQueueService service = new DefaultTaskQueueService(spikeify); // 5 workers
 
@@ -124,11 +150,13 @@ public class DefaultTaskQueueServiceTest {
 	@Test
 	public void purgeFinishedTasksTest() {
 
+		String QUEUE = "purgeFinishedTasksTest";
 		AtomicInteger failed = new AtomicInteger(0);
 		AtomicInteger completed = new AtomicInteger(0);
 
-		DefaultTaskQueueService service = new DefaultTaskQueueService(spikeify);
-		DefaultTaskExecutorService executor = new DefaultTaskExecutorService(service, QUEUE);
+		TaskQueueService service = new DefaultTaskQueueService(spikeify);
+		TaskExecutorService executor = new DefaultTaskExecutorService(service, QUEUE);
+		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
 
 		// add tasks to queue
 		int NUMBER_OF_JOBS = 10;
@@ -154,9 +182,18 @@ public class DefaultTaskQueueServiceTest {
 
 		assertEquals(10, ids.size());
 
+		QueueInfo info = manager.info(QUEUE);
+		assertEquals(10, info.getFinishedTasks());
+
+
 		TaskStatistics purged = service.purge(TaskState.finished, 0, QUEUE);
 		assertNotNull(purged);
 		assertEquals(10, purged.getCount());
+
+		// check info
+		info = manager.info(QUEUE);
+		assertEquals(0, info.getFinishedTasks());
+		assertEquals(10, info.getTotalFinished());
 
 		list = spikeify.scanAll(QueueTask.class).now();
 		assertEquals(0, list.size());

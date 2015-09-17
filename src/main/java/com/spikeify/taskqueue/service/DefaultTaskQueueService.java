@@ -7,6 +7,7 @@ import com.spikeify.SpikeifyService;
 import com.spikeify.Work;
 import com.spikeify.taskqueue.Job;
 import com.spikeify.taskqueue.TaskQueueError;
+import com.spikeify.taskqueue.entities.QueueInfo;
 import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskState;
 import com.spikeify.taskqueue.entities.TaskStatistics;
@@ -71,6 +72,9 @@ public class DefaultTaskQueueService implements TaskQueueService {
 				return task;
 			}
 		});
+
+		setQueueInfoCount(queueName, null, TaskState.queued);
+
 
 		// create id ... add job ...
 		return task;
@@ -160,6 +164,10 @@ public class DefaultTaskQueueService implements TaskQueueService {
 					// get latest version
 					QueueTask original = sfy.get(QueueTask.class).key(taskId).now();
 
+					if (original == null) {
+						return null;
+					}
+
 					// will throw exception in case transition is not possible (we don't have the latest version from database)
 					if (!original.getUpdateTime().equals(updateTime)) {
 						throw new TaskQueueError("Thread collision, some other thread already modified task!");
@@ -174,6 +182,11 @@ public class DefaultTaskQueueService implements TaskQueueService {
 				}
 			});
 
+			// change queue info count
+			if (updated != null) {
+				setQueueInfoCount(updated.getQueue(), task.getState(), newState);
+			}
+
 			return updated;
 		}
 		catch (ConcurrentModificationException | AerospikeException e) {
@@ -185,6 +198,42 @@ public class DefaultTaskQueueService implements TaskQueueService {
 
 			log.log(Level.SEVERE, "Transition failed, thread collision.", e);
 			return null;
+		}
+	}
+
+	private void setQueueInfoCount(String queue, TaskState oldState, TaskState newState) {
+
+		try {
+			// atomic counting of tasks in queue position
+			if (oldState != null) {
+				sfy.command(QueueInfo.class).key(queue).add(oldState.name(), -1).now();
+			}
+
+			if (newState != null) {
+				sfy.command(QueueInfo.class).key(queue).add(newState.name(), 1).now();
+			}
+
+			// total count statistics
+			if (TaskState.queued.equals(newState)) {
+				sfy.command(QueueInfo.class).key(queue).add("totalTasks", 1).now();
+			}
+
+			if (TaskState.finished.equals(newState)) {
+				sfy.command(QueueInfo.class).key(queue).add("totalFinished", 1).now();
+			}
+
+			if (TaskState.failed.equals(newState)) {
+				sfy.command(QueueInfo.class).key(queue).add("totalFailed", 1).now();
+			}
+
+			if (TaskState.failed.equals(oldState) &&
+				TaskState.running.equals(newState)) {
+				sfy.command(QueueInfo.class).key(queue).add("totalRetries", 1).now();
+			}
+		}
+		catch (Exception e) {
+			// exception here should not stop working the whole queue
+			log.log(Level.SEVERE, "Failed to count tasks!", e);
 		}
 	}
 

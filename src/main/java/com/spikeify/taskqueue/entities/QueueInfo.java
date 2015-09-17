@@ -17,7 +17,7 @@ public class QueueInfo {
 	protected int generation;
 
 	/**
-	 * JSON serialized QueueSettings
+	 * JSON serialized {@link QueueSettings}
 	 */
 	protected String queueSettings;
 
@@ -32,6 +32,26 @@ public class QueueInfo {
 	 * false - queue is stopped (is not running or shouldn't be running)
 	 */
 	protected boolean started;
+
+	// field names corresponding to TaskStates in order to count number of tasks in different states
+	protected long queued;
+	protected long running;
+	protected long purge;
+	protected long interrupted;
+	protected long failed;
+	protected long finished;
+
+	// total number of tasks processed
+	protected long totalTasks;
+
+	// total number of successful tasks
+	protected long totalFinished;
+
+	// total number of failed tasks
+	protected long totalFailed;
+
+	// total number of retries - from failed to running transition
+	protected long totalRetries;
 
 	protected QueueInfo() {
 		// for Spikeify
@@ -92,6 +112,9 @@ public class QueueInfo {
 
 	protected long waitingDuration;
 */
+
+
+
 	public String getName() {
 
 		return name;
@@ -125,5 +148,66 @@ public class QueueInfo {
 	public void setStarted(boolean start) {
 
 		started = start;
+	}
+
+	public void reset() {
+
+		// reset total counts
+		totalTasks = 0;
+		totalFinished = 0;
+		totalFailed = 0;
+		totalRetries = 0;
+
+		// TODO: add purge statistics when available
+	}
+
+	public long getQueuedTasks() {
+
+		return queued;
+	}
+
+	public long getRunningTasks() {
+
+		return running;
+	}
+
+	public long getPurgeTasks() {
+
+		return purge;
+	}
+
+	public long getInterruptedTasks() {
+
+		return interrupted;
+	}
+
+	public long getFailedTasks() {
+
+		return failed;
+	}
+
+	public long getFinishedTasks() {
+
+		return finished;
+	}
+
+	public long getTotalTasks() {
+
+		return totalTasks;
+	}
+
+	public long getTotalFinished() {
+
+		return totalFinished;
+	}
+
+	public long getTotalFailed() {
+
+		return totalFailed;
+	}
+
+	public long getTotalRetries() {
+
+		return totalRetries;
 	}
 }

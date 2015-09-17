@@ -62,7 +62,7 @@ public class TaskStatistics {
 
 	public static class Builder {
 
-		int count;
+		long count;
 
 		Long minJobRunTime = null;
 		Long maxJobRunTime = null;
@@ -84,6 +84,30 @@ public class TaskStatistics {
 			}
 		}
 
+
+		public void include(QueueTask item) {
+
+			if (item != null) {
+
+				setMinMaxExecutionTime(item.getExecutionTime());
+				setMinMaxJobRunTime(item.getJobRunTime());
+
+				if (item.getExecutionTime() != null) {
+					totalExecutionTime = totalExecutionTime + item.getExecutionTime();
+				}
+
+				if (item.getJobRunTime() != null) {
+					totalJobRunTime = totalJobRunTime + item.getJobRunTime();
+				}
+
+				count++;
+			}
+		}
+
+		/**
+		 * calculates average according to included items
+		 * @return statistics or null if no items were included
+		 */
 		public TaskStatistics build() {
 
 			if (count == 0) {
@@ -91,6 +115,66 @@ public class TaskStatistics {
 			}
 
 			calculateAverage();
+			return getTaskStatistics();
+		}
+
+		/**
+		 * Joins previous statistics with current
+		 *
+		 * @param previous calculated statistics
+		 */
+		public TaskStatistics buildWith(TaskStatistics previous) {
+
+			if (count > 0 && previous.count > 0) {
+				averageJobRunTime = previous.getAverageJobRunTime() * ((previous.count + count) / previous.count) + (totalJobRunTime / count);
+				averageExecutionTime = previous.getAverageExecutionTime() * ((previous.count + count) / previous.count) + (totalExecutionTime / count);
+
+				count = count + previous.count;
+
+				totalExecutionTime = totalExecutionTime + previous.getTotalExecutionTime();
+				totalJobRunTime = totalJobRunTime + previous.getTotalExecutionTime();
+
+				setMinMaxExecutionTime(previous.getMinExecutionTime());
+				setMinMaxExecutionTime(previous.getMaxExecutionTime());
+
+				setMinMaxJobRunTime(previous.getMinJobRunTime());
+				setMinMaxJobRunTime(previous.getMaxJobRunTime());
+			}
+
+			return getTaskStatistics();
+			/*m = število novih
+			n = število starih
+			new average =old average * (n-m)/n + sum of new value/n).*/
+		}
+
+		private void setMinMaxExecutionTime(Long jobExecutionTime) {
+
+			if (jobExecutionTime != null) {
+				if (minExecutionTime == null || jobExecutionTime < minExecutionTime) {
+					minExecutionTime = jobExecutionTime;
+				}
+
+				if (maxExecutionTime == null || jobExecutionTime > maxExecutionTime) {
+					maxExecutionTime = jobExecutionTime;
+				}
+			}
+		}
+
+		private void setMinMaxJobRunTime(Long jobRunTime) {
+
+			if (jobRunTime != null) {
+				if (minJobRunTime == null || jobRunTime < minJobRunTime) {
+					minJobRunTime = jobRunTime;
+				}
+
+				if (maxJobRunTime == null || jobRunTime > maxJobRunTime) {
+					maxJobRunTime = jobRunTime;
+				}
+			}
+		}
+
+		private TaskStatistics getTaskStatistics() {
+
 			TaskStatistics statistics = new TaskStatistics();
 			statistics.count = count;
 
@@ -103,41 +187,7 @@ public class TaskStatistics {
 			statistics.maxJobRunTime = maxJobRunTime != null ? maxJobRunTime : 0;
 			statistics.averageJobRunTime = averageJobRunTime;
 			statistics.totalJobRunTime = totalJobRunTime;
-
 			return statistics;
-		}
-
-		public void include(QueueTask item) {
-
-			if (item != null) {
-				Long jobRunTime = item.getJobRunTime();
-				if (jobRunTime != null) {
-					if (minJobRunTime == null || jobRunTime < minJobRunTime) {
-						minJobRunTime = jobRunTime;
-					}
-
-					if (maxJobRunTime == null || jobRunTime > maxJobRunTime) {
-						maxJobRunTime = jobRunTime;
-					}
-
-					totalJobRunTime = totalJobRunTime + jobRunTime;
-				}
-
-				Long jobExecutionTime = item.getExecutionTime();
-				if (jobExecutionTime != null) {
-					if (minExecutionTime == null || jobExecutionTime < minExecutionTime) {
-						minExecutionTime = jobExecutionTime;
-					}
-
-					if (maxExecutionTime == null || jobExecutionTime > maxExecutionTime) {
-						maxExecutionTime = jobExecutionTime;
-					}
-
-					totalExecutionTime = totalExecutionTime + jobExecutionTime;
-				}
-
-				count++;
-			}
 		}
 	}
 }

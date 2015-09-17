@@ -20,7 +20,6 @@ import static org.junit.Assert.assertTrue;
 
 public class DefaultTaskQueueManagerTest {
 
-	private static final String QUEUE = "simple";
 	private Spikeify spikeify;
 
 	private TaskQueueManager manager;
@@ -101,6 +100,7 @@ public class DefaultTaskQueueManagerTest {
 	@Test
 	public void testStart() throws Exception {
 
+		String QUEUE = "simple";
 		manager.register(QUEUE); // create queue
 
 		for (int i = 0; i < 3; i++) {
@@ -134,7 +134,7 @@ public class DefaultTaskQueueManagerTest {
 	public void testStop() throws Exception {
 
 		// start and then abruptly stop
-
+		String QUEUE = "testStop";
 		manager.register(QUEUE); // create queue
 
 		for (int i = 0; i < 20; i++) { // add few long lasting tasks
@@ -169,6 +169,7 @@ public class DefaultTaskQueueManagerTest {
 	@Test
 	public void testMultipleMachinesRunningQueues() throws InterruptedException {
 
+		String QUEUE = "testMultipleMachinesRunningQueues";
 		manager.register(QUEUE);
 
 		for (int i = 0; i < 100; i++) { // add a lot 1s tasks

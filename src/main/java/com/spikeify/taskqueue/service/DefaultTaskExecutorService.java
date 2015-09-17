@@ -31,7 +31,8 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 	// current running job
 	private Job currentJob;
 
-	public DefaultTaskExecutorService(TaskQueueService queueService, String queueName) {
+	public DefaultTaskExecutorService(TaskQueueService queueService,
+									  String queueName) {
 
 		Assert.notNull(queueService, "Missing queue service!");
 

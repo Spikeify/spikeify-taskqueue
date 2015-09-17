@@ -14,6 +14,19 @@ public interface TaskQueueManager {
 	QueueInfo register(String queueName);
 
 	/**
+	 * Returns single queue info with statistics
+	 * @param queueName name of queue
+	 * @return queue info
+	 */
+	QueueInfo info(String queueName);
+
+	/**
+	 * Will reset all statistics data and counts
+	 * @param queueName name of queue
+	 */
+	void resetStatistics(String queueName);
+
+	/**
 	 * Lists queues registered
 	 * @param active - true list active queues, false - list disabled queues, null - list all
 	 * @return list of registered queues
@@ -65,5 +78,4 @@ public interface TaskQueueManager {
 	 * @throws InterruptedException
 	 */
 	void check() throws InterruptedException;
-
 }

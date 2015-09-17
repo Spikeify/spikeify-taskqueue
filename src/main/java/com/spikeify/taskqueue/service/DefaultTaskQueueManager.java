@@ -93,6 +93,26 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	}
 
 	@Override
+	public QueueInfo info(String queueName) {
+
+		Assert.notNullOrEmpty(queueName, "Missing queue name!");
+		final String name = queueName.trim();
+
+		return sfy.get(QueueInfo.class).key(name).now();
+	}
+
+	@Override
+	public void resetStatistics(String queueName) {
+
+		save(queueName, new QueueInfoUpdater() {
+			@Override
+			public void update(QueueInfo info) {
+				info.reset();
+			}
+		});
+	}
+
+	@Override
 	public List<QueueInfo> list(Boolean active) {
 
 		return sfy.scanAll(QueueInfo.class).filter(new AcceptFilter<QueueInfo>() {
@@ -107,7 +127,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	@Override
 	public void unregister(String queueName) {
 
-		QueueInfo found = find(queueName);
+		QueueInfo found = info(queueName);
 
 		try {
 
@@ -252,7 +272,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 
 			for (String name : queueNames) {
 
-				QueueInfo queue = find(name);
+				QueueInfo queue = info(name);
 
 				Assert.notNull(queue, "Queue: " + name + ", is not registered!");
 				Assert.isTrue(queue.isEnabled(), "Queue: " + name + " is not enabled!");
@@ -307,13 +327,5 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 		}
 
 		threadPool.remove(queueName);
-	}
-
-	protected QueueInfo find(String queueName) {
-
-		Assert.notNullOrEmpty(queueName, "Missing queue name!");
-		final String name = queueName.trim();
-
-		return sfy.get(QueueInfo.class).key(name).now();
 	}
 }
