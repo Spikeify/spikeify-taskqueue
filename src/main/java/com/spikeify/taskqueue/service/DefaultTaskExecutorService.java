@@ -71,10 +71,10 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 			// was successfully put in running state
 			if (started) {
 
-				// get job
-				currentJob = next.getJob();
-
 				try {
+					// get job
+					currentJob = next.getJob();
+
 					// 2. execute job
 					TaskResult result = currentJob.execute(context);
 
