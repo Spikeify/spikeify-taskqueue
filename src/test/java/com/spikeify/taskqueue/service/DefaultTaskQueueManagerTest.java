@@ -227,7 +227,7 @@ public class DefaultTaskQueueManagerTest {
 
 		manager.start(QUEUE);
 
-		Thread.sleep(20 * 1000); // wait 20 seconds ... task should be put in failed state at least once
+		Thread.sleep(25 * 1000); // wait 20 seconds ... task should be put in failed state at least once
 
 		// task should be in running state ...
 		List<QueueTask> list = queues.list(TaskState.running, QUEUE);

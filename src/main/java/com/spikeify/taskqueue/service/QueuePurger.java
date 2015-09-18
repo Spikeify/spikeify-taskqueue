@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 public class QueuePurger implements Runnable {
 
 	private static final Logger log = Logger.getLogger(QueuePurger.class.getSimpleName());
+	private static final int ADDITIONAL_SLACK = 10; // add 10 seconds ... so purge and time-out in Scheduler can't clash
 
 	private final TaskQueueService queues;
 	private final int timeout;
@@ -49,7 +50,7 @@ public class QueuePurger implements Runnable {
 		// check for timed out tasks ...
 		List<QueueTask> running = queues.list(TaskState.running, queueName);
 		for (QueueTask task : running) {
-			if (task.isOlderThanSeconds(timeout)) {
+			if (task.isOlderThanSeconds(timeout + ADDITIONAL_SLACK)) {
 				log.info("Found hanged/timed out task: " + task + ", putting into failed state!");
 				queues.transition(task, TaskState.failed); // move task to failed state ... so it can be restarted
 			}
