@@ -9,13 +9,16 @@ public interface TaskQueueManager {
 
 	/**
 	 * Registers queue to be monitored
+	 *
 	 * @param queueName name of queue
+	 * @param autoStart true will put queue into started mode (once check is called queue will be started), false queue must be put into started mode manually
 	 * @return registered queue info
 	 */
-	QueueInfo register(String queueName);
+	QueueInfo register(String queueName, boolean autoStart);
 
 	/**
 	 * Returns single queue info with statistics
+	 *
 	 * @param queueName name of queue
 	 * @return queue info
 	 */
@@ -23,12 +26,14 @@ public interface TaskQueueManager {
 
 	/**
 	 * Will reset all statistics data and counts
+	 *
 	 * @param queueName name of queue
 	 */
 	void resetStatistics(String queueName);
 
 	/**
 	 * Lists queues registered
+	 *
 	 * @param active - true list active queues, false - list disabled queues, null - list all
 	 * @return list of registered queues
 	 */
@@ -36,6 +41,7 @@ public interface TaskQueueManager {
 
 	/**
 	 * Removes queue from monitoring
+	 *
 	 * @param queueName to be removed
 	 */
 	void unregister(String queueName);
@@ -46,19 +52,27 @@ public interface TaskQueueManager {
 	 * if called multiple times then threads are terminated and restated (acts as restart)
 	 *
 	 * @param queueNames names to be started or empty to start all enabled queues
-	 * @throws InterruptedException	when interrupted
+	 * @throws InterruptedException when interrupted
 	 */
 	void start(String... queueNames) throws InterruptedException;
 
 	/**
 	 * Stops queues - stops all running tasks/threads (on given JVM)
+	 *
 	 * @param queueNames to be stopped or empty to stop all enabled queues
 	 * @throws InterruptedException when interrupted
 	 */
 	void stop(String... queueNames) throws InterruptedException;
 
 	/**
+	 * @param queueName name of queue
+	 * @return true if queue is started and active (running), false if not
+	 */
+	boolean isRunning(String queueName);
+
+	/**
 	 * Enables queue
+	 *
 	 * @param queueName - enables queue to be run
 	 * @return enabled queue info
 	 */
@@ -66,6 +80,7 @@ public interface TaskQueueManager {
 
 	/**
 	 * Disables queue - stops queue if running
+	 *
 	 * @param queueName - disables queue from running
 	 * @return disabled queue info
 	 */
@@ -74,15 +89,17 @@ public interface TaskQueueManager {
 	/**
 	 * Should be called on regular basis from each machine running queues
 	 * takes care that if one instance has started/stopped a queue it is also started/stopped on other machines
-	 *
+	 * <p>
 	 * Best invoked from a cron job or similar
+	 *
 	 * @throws InterruptedException when interrupted
 	 */
 	void check() throws InterruptedException;
 
 	/**
 	 * Sets queue settings
-	 * @param queue queue name
+	 *
+	 * @param queue    queue name
 	 * @param settings to be stored
 	 */
 	void set(String queue, QueueSettings settings);

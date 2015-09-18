@@ -64,7 +64,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	}
 
 	@Override
-	public QueueInfo register(String queueName) {
+	public QueueInfo register(String queueName, boolean autoStart) {
 
 		Assert.notNullOrEmpty(queueName, "Missing queue name!");
 
@@ -81,6 +81,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 
 				// create default queue info ...
 				QueueInfo newQueue = new QueueInfo(queueName);
+				newQueue.setStarted(autoStart);
 
 				sfy.create(newQueue).now();
 				return newQueue;
@@ -202,6 +203,12 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 			stopRunningThreads(name);
 			log.info("Stopped queue: " + name);
 		}
+	}
+
+	@Override
+	public boolean isRunning(String queueName) {
+
+		return threadPool.get(queueName) != null;
 	}
 
 	@Override

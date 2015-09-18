@@ -1,7 +1,10 @@
 package com.spikeify.taskqueue.service;
 
 import com.spikeify.Spikeify;
-import com.spikeify.taskqueue.*;
+import com.spikeify.taskqueue.LongRunningTask;
+import com.spikeify.taskqueue.TestHelper;
+import com.spikeify.taskqueue.TestTask;
+import com.spikeify.taskqueue.TimeoutTask;
 import com.spikeify.taskqueue.entities.QueueInfo;
 import com.spikeify.taskqueue.entities.QueueSettings;
 import com.spikeify.taskqueue.entities.QueueTask;
@@ -13,9 +16,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static com.spikeify.taskqueue.service.DefaultTaskQueueManager.SLEEP_WAITING_FOR_TASKS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class DefaultTaskQueueManagerTest {
 
@@ -38,15 +39,15 @@ public class DefaultTaskQueueManagerTest {
 	@After
 	public void tearDown() {
 
-//		spikeify.truncateNamespace("test");
+		//		spikeify.truncateNamespace("test");
 	}
 
 	@Test
 	public void testRegisterEnableDisableUnregister() throws Exception {
 
-		manager.register("test");
-		manager.register("test2");
-		manager.register("test3");
+		manager.register("test", false);
+		manager.register("test2", false);
+		manager.register("test3", false);
 
 		List<QueueInfo> list = manager.list(true);
 		assertEquals(3, list.size());
@@ -74,7 +75,7 @@ public class DefaultTaskQueueManagerTest {
 		list = manager.list(true);
 
 		assertEquals(2, list.size());
-		for (QueueInfo info: list) {
+		for (QueueInfo info : list) {
 			assertTrue(info.isStarted());
 			assertTrue(info.getName().equals("test") || info.getName().equals("test3"));
 		}
@@ -100,7 +101,7 @@ public class DefaultTaskQueueManagerTest {
 	public void testStart() throws Exception {
 
 		String QUEUE = "simple";
-		manager.register(QUEUE); // create queue
+		manager.register(QUEUE, false); // create queue
 
 		for (int i = 0; i < 3; i++) {
 			// add some long running tasks
@@ -134,7 +135,7 @@ public class DefaultTaskQueueManagerTest {
 
 		// start and then abruptly stop
 		String QUEUE = "testStop";
-		manager.register(QUEUE); // create queue
+		manager.register(QUEUE, false); // create queue
 
 		for (int i = 0; i < 20; i++) { // add few long lasting tasks
 			// add some long running tasks
@@ -170,7 +171,7 @@ public class DefaultTaskQueueManagerTest {
 	public void testMultipleMachinesRunningQueues() throws InterruptedException {
 
 		String QUEUE = "testMultipleMachinesRunningQueues";
-		manager.register(QUEUE);
+		manager.register(QUEUE, false);
 
 		for (int i = 0; i < 100; i++) { // add a lot 1s tasks
 			// add some long running tasks
@@ -213,9 +214,8 @@ public class DefaultTaskQueueManagerTest {
 
 		String QUEUE = "killTimedOutTask";
 		TaskQueueService service = new DefaultTaskQueueService(spikeify);
-		TaskExecutorService executor = new DefaultTaskExecutorService(service, QUEUE);
 		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
-		manager.register(QUEUE);
+		manager.register(QUEUE, false);
 
 		service.add(new TimeoutTask(), QUEUE);
 

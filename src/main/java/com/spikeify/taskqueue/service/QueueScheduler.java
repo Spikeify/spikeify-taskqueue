@@ -100,7 +100,7 @@ public class QueueScheduler implements Runnable {
 			log.info("Interrupted after: " + successCount + "/" + allCount + " execution(s).");
 		}
 		else {
-			log.info("No tasks found, stopping after: " + successCount + "/" + allCount + " execution(s).");
+			log.info("No new tasks found, stopping after: " + successCount + "/" + allCount + " execution(s).");
 		}
 	}
 

@@ -47,7 +47,7 @@ public class MultithreadTaskExecutorServiceTest {
 		TaskQueueService service = new DefaultTaskQueueService(spikeify);
 		TaskExecutorService executor = new DefaultTaskExecutorService(service, QUEUE);
 		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
-		manager.register(QUEUE);
+		manager.register(QUEUE, false);
 
 		int NUMBER_OF_JOBS = 100;
 
@@ -298,7 +298,7 @@ public class MultithreadTaskExecutorServiceTest {
 
 		TaskQueueService service = new DefaultTaskQueueService(spikeify);
 		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
-		manager.register(QUEUE);
+		manager.register(QUEUE, false);
 
 		for (int i = 0; i < NUMBER_OF_JOBS; i++) {
 			Job dummy = new FailingTask(i); // job which will fail in case job number is dividable by 20
@@ -387,7 +387,7 @@ public class MultithreadTaskExecutorServiceTest {
 
 		TaskQueueService service = new DefaultTaskQueueService(spikeify);
 		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
-		manager.register(QUEUE);
+		manager.register(QUEUE, false);
 
 		// will always fail ...
 		for (int i = 0; i < NUMBER_OF_JOBS; i++) {
@@ -489,7 +489,7 @@ public class MultithreadTaskExecutorServiceTest {
 
 		assertEquals(TaskResultState.interrupted, result[0].getState());
 
-		for (TaskState state: TaskState.values()) {
+		for (TaskState state : TaskState.values()) {
 
 			if (!TaskState.interrupted.equals(state)) {
 				List<QueueTask> list = service.list(state, QUEUE);
