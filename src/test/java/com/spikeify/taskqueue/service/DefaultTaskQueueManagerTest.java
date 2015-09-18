@@ -1,10 +1,9 @@
 package com.spikeify.taskqueue.service;
 
 import com.spikeify.Spikeify;
-import com.spikeify.taskqueue.LongRunningTask;
-import com.spikeify.taskqueue.TestHelper;
-import com.spikeify.taskqueue.TestTask;
+import com.spikeify.taskqueue.*;
 import com.spikeify.taskqueue.entities.QueueInfo;
+import com.spikeify.taskqueue.entities.QueueSettings;
 import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskState;
 import org.junit.After;
@@ -39,7 +38,7 @@ public class DefaultTaskQueueManagerTest {
 	@After
 	public void tearDown() {
 
-		spikeify.truncateNamespace("test");
+//		spikeify.truncateNamespace("test");
 	}
 
 	@Test
@@ -206,5 +205,42 @@ public class DefaultTaskQueueManagerTest {
 		// check how many tasks have been finished
 		List<QueueTask> list = queues.list(TaskState.finished, QUEUE);
 		assertTrue("Only: " + list.size() + " tasks finished, expected: " + ((MACHINES * SLEEP_WAITING_FOR_TASKS) - (MACHINES * 3)), list.size() >= (MACHINES * SLEEP_WAITING_FOR_TASKS) - (MACHINES * 3)); // at least so many task should have been finished
+	}
+
+	@Test
+	public void killTimedOutTask() throws InterruptedException {
+
+		String QUEUE = "killTimedOutTask";
+		TaskQueueService service = new DefaultTaskQueueService(spikeify);
+		TaskExecutorService executor = new DefaultTaskExecutorService(service, QUEUE);
+		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
+		manager.register(QUEUE);
+
+		service.add(new TimeoutTask(), QUEUE);
+
+		QueueInfo info = manager.info(QUEUE);
+		QueueSettings settings = info.getSettings();
+		settings.setTaskTimeoutSeconds(10);
+
+		manager.set(QUEUE, settings); // 10 seconds for tasks to time out
+
+		manager.start(QUEUE);
+
+		Thread.sleep(20 * 1000); // wait 20 seconds ... task should be put in failed state at least once
+
+		// task should be in running state ...
+		List<QueueTask> list = queues.list(TaskState.running, QUEUE);
+		assertEquals(1, list.size());
+
+		// let's purge
+		QueuePurger purger = new QueuePurger(queues, QUEUE, settings);
+		purger.run();
+
+		// task should be moved into failed state
+		list = queues.list(TaskState.running, QUEUE);
+		assertEquals(0, list.size());
+
+		list = queues.list(TaskState.failed, QUEUE);
+		assertEquals(1, list.size());
 	}
 }

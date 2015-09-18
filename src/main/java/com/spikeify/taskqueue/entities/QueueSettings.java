@@ -28,7 +28,7 @@ public class QueueSettings {
 	 * Number of minutes task is considered hanged or execution takes to long
 	 * and interrupt is send ... than task is put into failed state
 	 */
-	protected int taskTimeoutMinutes = 10;
+	protected int taskTimeoutSeconds = 10 * 60;
 
 	/**
 	 * Maximal number of threads for this queue on a single machine
@@ -63,16 +63,16 @@ public class QueueSettings {
 	}
 
 	@JsonProperty("timeout")
-	public void setTaskTimeoutMinutes(int minutes) {
-		Assert.isTrue(minutes > 0, "Time out must be >= 1!");
-		Assert.isTrue(minutes <= 60, "Time out must be <= 60!");
+	public void setTaskTimeoutSeconds(int seconds) {
+		Assert.isTrue(seconds > 0, "Time out must be >= 1!");
+		Assert.isTrue(seconds <= (60 * 60), "Time out must be <= 3600!");
 
-		taskTimeoutMinutes = minutes;
+		taskTimeoutSeconds = seconds;
 	}
 
 	@JsonProperty("timeout")
-	public int getTaskTimeoutMinutes() {
-		return taskTimeoutMinutes;
+	public int getTaskTimeoutSeconds() {
+		return taskTimeoutSeconds;
 	}
 
 	@JsonProperty("threads")

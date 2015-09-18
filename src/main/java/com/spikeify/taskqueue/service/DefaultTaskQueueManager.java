@@ -67,28 +67,27 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	public QueueInfo register(String queueName) {
 
 		Assert.notNullOrEmpty(queueName, "Missing queue name!");
-		final String name = queueName.trim();
 
 		// check if ID is uniqe
 		QueueInfo queue = sfy.transact(5, new Work<QueueInfo>() {
 			@Override
 			public QueueInfo run() {
 
-				QueueInfo original = sfy.get(QueueInfo.class).key(name).now();
+				QueueInfo original = sfy.get(QueueInfo.class).key(queueName.trim()).now();
 
 				if (original != null) { // already registered ... just return original
 					return original;
 				}
 
 				// create default queue info ...
-				QueueInfo newQueue = new QueueInfo(name);
+				QueueInfo newQueue = new QueueInfo(queueName);
 
 				sfy.create(newQueue).now();
 				return newQueue;
 			}
 		});
 
-		log.info("Queue: " + name + ", registered!");
+		log.info("Queue: " + queueName + ", registered!");
 		return queue;
 	}
 
@@ -128,25 +127,27 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	public void unregister(String queueName) {
 
 		QueueInfo found = info(queueName);
+		if (found != null) {
 
-		try {
+			try {
 
-			stop(queueName);
+				stop(queueName);
 
-			// clean all tasks from queue ... none should be running anymore
-			queues.purge(TaskState.queued, 0, queueName);
-			queues.purge(TaskState.failed, 0, queueName);
-			queues.purge(TaskState.finished, 0, queueName);
-			queues.purge(TaskState.interrupted, 0, queueName);
+				// clean all tasks from queue ... none should be running anymore
+				queues.purge(TaskState.queued, 0, queueName);
+				queues.purge(TaskState.failed, 0, queueName);
+				queues.purge(TaskState.finished, 0, queueName);
+				queues.purge(TaskState.interrupted, 0, queueName);
 
-			if (found != null) {
-				log.info("Queue: " + queueName + ", unregistered!");
-				sfy.delete(found).now();
+				if (found != null) {
+					log.info("Queue: " + queueName + ", unregistered!");
+					sfy.delete(found).now();
+				}
+
 			}
-
-		}
-		catch (InterruptedException e) {
-			log.log(Level.SEVERE, "Failed to stop queue: " + queueName + ", can't unregister!", e);
+			catch (InterruptedException e) {
+				log.log(Level.SEVERE, "Failed to stop queue: " + queueName + ", can't unregister!", e);
+			}
 		}
 	}
 
@@ -171,19 +172,13 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 			// queue execution
 			TaskContext context = new TaskThreadPoolContext(executorService);
 
-			executorService.scheduleAtFixedRate(new QueueScheduler(queues, name, context),
+			executorService.scheduleAtFixedRate(new QueueScheduler(queues, name, settings.getTaskTimeoutSeconds(), context),
 												SLEEP_WAITING_FOR_START,
 												SLEEP_WAITING_FOR_TASKS,
 												TimeUnit.SECONDS);
 
-			// failed task purging
-			executorService.scheduleAtFixedRate(new QueuePurger(queues, name, TaskState.failed, settings.getPurgeFailedAfterMinutes()),
-												SLEEP_WAITING_FOR_PURGE,
-												SLEEP_WAITING_FOR_PURGE,
-												TimeUnit.SECONDS);
-
-			// finished task purging
-			executorService.scheduleAtFixedRate(new QueuePurger(queues, name, TaskState.finished, settings.getPurgeSuccessfulAfterMinutes()),
+			// failed and finished task purging
+			executorService.scheduleAtFixedRate(new QueuePurger(queues, name, settings),
 												SLEEP_WAITING_FOR_PURGE,
 												SLEEP_WAITING_FOR_PURGE,
 												TimeUnit.SECONDS);
@@ -260,6 +255,19 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 				stop(original.getName());
 			}
 		}
+	}
+
+	@Override
+	public void set(String queueName, QueueSettings settings) {
+
+		Assert.notNullOrEmpty(queueName, "Missing queue name!");
+
+		save(queueName, new QueueInfoUpdater() {
+			@Override
+			public void update(QueueInfo info) {
+				info.setSettings(settings);
+			}
+		});
 	}
 
 	private List<QueueInfo> getQueues(String... queueNames) {

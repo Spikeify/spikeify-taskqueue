@@ -5,6 +5,10 @@ import com.spikeify.taskqueue.TaskResult;
 import com.spikeify.taskqueue.entities.TaskResultState;
 import com.spikeify.taskqueue.utils.Assert;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class QueueScheduler implements Runnable {
@@ -14,13 +18,15 @@ public class QueueScheduler implements Runnable {
 	private final TaskQueueService queues;
 	private final TaskExecutorService executor;
 	private final TaskContext context;
+	private final int taskTimeout;
 
-	public QueueScheduler(TaskQueueService queueService, String queueName, TaskContext threadContext) {
+	public QueueScheduler(TaskQueueService queueService, String queueName, int timeoutInSeconds, TaskContext threadContext) {
 
 		Assert.notNull(queueService, "Missing queue service!");
 
 		queues = queueService;
 		executor = new DefaultTaskExecutorService(queues, queueName);
+		taskTimeout = timeoutInSeconds;
 		context = threadContext;
 	}
 
@@ -44,7 +50,35 @@ public class QueueScheduler implements Runnable {
 
 		do {
 			// while there are tasks to be executed ... continue with execution
-			result = executor.execute(context);
+
+			ExecutorService service = Executors.newSingleThreadExecutor();
+			WorkerThread worker = new WorkerThread(context);
+			service.execute(worker);
+
+			try {
+				// little trick ... trigger shutdown to await time out
+				// if time out occurs try gracefully terminating task ...
+				// if not return failed result ...
+				// task will stay in running state ... and Purger should take care of it (to put it into failed state)
+				service.shutdown();
+				if (!service.awaitTermination(taskTimeout, TimeUnit.SECONDS)) {
+
+					service.shutdownNow();
+					result = worker.getResult();
+
+					if (result == null) {
+						TaskResult.failed();
+					}
+				}
+				else {
+					// task finished succesfully ... get the result
+					result = worker.getResult();
+				}
+			}
+			catch (InterruptedException e) {
+				log.log(Level.SEVERE, "Task has been timed out ...");
+				result = TaskResult.failed();
+			}
 
 			if (result != null) {
 
@@ -73,5 +107,27 @@ public class QueueScheduler implements Runnable {
 	private TaskContext getContext() {
 
 		return context;
+	}
+
+	private class WorkerThread implements Runnable {
+
+		private final TaskContext context;
+		private TaskResult result;
+
+		public WorkerThread(TaskContext context) {
+
+			this.context = context;
+		}
+
+		public TaskResult getResult() {
+
+			return result;
+		}
+
+		@Override
+		public void run() {
+
+			result = executor.execute(context);
+		}
 	}
 }

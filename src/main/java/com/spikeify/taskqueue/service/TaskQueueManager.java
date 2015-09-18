@@ -1,6 +1,7 @@
 package com.spikeify.taskqueue.service;
 
 import com.spikeify.taskqueue.entities.QueueInfo;
+import com.spikeify.taskqueue.entities.QueueSettings;
 
 import java.util.List;
 
@@ -78,4 +79,11 @@ public interface TaskQueueManager {
 	 * @throws InterruptedException when interrupted
 	 */
 	void check() throws InterruptedException;
+
+	/**
+	 * Sets queue settings
+	 * @param queue queue name
+	 * @param settings to be stored
+	 */
+	void set(String queue, QueueSettings settings);
 }
