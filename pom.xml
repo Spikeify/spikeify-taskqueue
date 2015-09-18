@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.spikeify</groupId>
     <artifactId>taskqueue</artifactId>
-    <version>0.0.1</version>
+    <version>0.1.0</version>
     <packaging>jar</packaging>
 
     <name>Spikeify Taskqueue</name>
     <description>Taskqueue service utilizing Spikeify with Aerospike database</description>
-    <!--<url>http://www.spikeify.com</url>-->
+    <url>https://github.com/Spikeify/spikeify-taskqueue</url>
     <inceptionYear>2015</inceptionYear>
 
     <properties>
@@ -33,7 +33,6 @@
         </license>
     </licenses>
 
-    <!-- uncomment when ready -->
     <scm>
         <url>https://github.com/Spikeify/spikeify-taskqueue</url>
         <connection>scm:git:git://github.com/Spikeify/spikeify-taskqueue.git</connection>
@@ -101,17 +100,9 @@
             <version>${version.mockito-all}</version>
             <scope>test</scope>
         </dependency>
-
-       <!-- <dependency>
-            <groupId>com.jayway.awaitility</groupId>
-            <artifactId>awaitility</artifactId>
-            <version>1.6.3</version>
-            <scope>test</scope>
-        </dependency>-->
-
     </dependencies>
 
-   <distributionManagement>
+    <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
@@ -177,7 +168,7 @@
                     </execution>
                 </executions>
             </plugin>
-          <!--  <plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
                 <version>1.6</version>
@@ -193,7 +184,7 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>-->
+            </plugin>
         </plugins>
     </build>
 </project>

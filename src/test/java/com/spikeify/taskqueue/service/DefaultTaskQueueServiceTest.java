@@ -198,12 +198,13 @@ public class DefaultTaskQueueServiceTest {
 		assertEquals(10, info.getTotalFinished());
 
 		TaskStatistics stats = info.getStatistics(TaskState.finished);
-
+		assertEquals(10, stats.getCount());
+		assertTrue(stats.getMinJobRunTime() <= stats.getMaxJobRunTime());
+		assertTrue(stats.getMinExecutionTime() <= stats.getMaxExecutionTime());
+		assertTrue(stats.getMaxExecutionTime() <= stats.getTotalExecutionTime());
 
 		list = spikeify.scanAll(QueueTask.class).now();
 		assertEquals(0, list.size());
-
-
 	}
 
 	private int execute(TaskExecutorService service, AtomicInteger completed, AtomicInteger failed) {

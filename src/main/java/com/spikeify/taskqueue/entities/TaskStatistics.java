@@ -84,8 +84,11 @@ public class TaskStatistics {
 			}
 		}
 
-
-		public void include(QueueTask item) {
+		/**
+		 * @param item task queue item to include in calculation
+		 * @return builder
+		 */
+		public Builder include(QueueTask item) {
 
 			if (item != null) {
 
@@ -102,8 +105,15 @@ public class TaskStatistics {
 
 				count++;
 			}
+
+			return this;
 		}
 
+		/**
+		 * Joins with old statistics
+		 * @param old statistics
+		 * @return builder with joined statistics
+		 */
 		public Builder include(TaskStatistics old) {
 
 			if (old == null)
@@ -143,6 +153,7 @@ public class TaskStatistics {
 		 * Joins previous statistics with current
 		 *
 		 * @param previous calculated statistics
+		 * @return calculated task statistics
 		 */
 		public TaskStatistics buildWith(TaskStatistics previous) {
 
