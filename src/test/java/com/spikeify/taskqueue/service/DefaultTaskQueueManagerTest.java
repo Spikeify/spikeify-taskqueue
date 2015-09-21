@@ -37,7 +37,7 @@ public class DefaultTaskQueueManagerTest {
 	@After
 	public void tearDown() {
 
-		//		spikeify.truncateNamespace("test");
+		spikeify.truncateNamespace("test");
 	}
 
 	@Test
