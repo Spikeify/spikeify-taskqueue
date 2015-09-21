@@ -181,6 +181,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 
 			// create maxThread schedulers running tasks per machine ...
 			for (int i = 0; i < settings.getMaxThreads(); i++) {
+				// each thread must have it's own executor service
 				TaskExecutorService executor = new DefaultTaskExecutorService(queues, name);
 				executorService.scheduleAtFixedRate(new QueueScheduler(executor, settings.getTaskTimeoutSeconds(), context),
 													SLEEP_WAITING_FOR_START,

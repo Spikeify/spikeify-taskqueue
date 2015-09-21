@@ -292,4 +292,77 @@ public class DefaultTaskQueueManagerTest {
 
 		assertTrue(stats.getMaxExecutionTime() < 25 * 1000); // last task waited at least 20s ...
 	}
+
+	@Test
+	public void multipleThreadsWithOneTimeOutTask() throws InterruptedException {
+
+		String QUEUE = "multipleThreadsWithOneTimeOutTask";
+		TaskQueueService service = new DefaultTaskQueueService(spikeify);
+		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
+		manager.register(QUEUE, false);
+
+
+		QueueInfo info = manager.info(QUEUE);
+		QueueSettings settings = info.getSettings();
+		settings.setTaskTimeoutSeconds(5);
+		settings.setMaxThreads(5);
+
+		manager.set(QUEUE, settings); // 10 seconds for tasks to time out
+
+		for (int i = 0; i < 100; i++) {
+			if (i > 5 && i <= 10) {
+				service.add(new TimeoutTask(), QUEUE); // add 5 tasks that will time out
+			}
+
+			service.add(new LongRunningTask(1000), QUEUE); // one second for each task (on 5 threads this should take 20s)
+		}
+
+
+		manager.start(QUEUE);
+
+		Thread.sleep(50 * 1000); // wait all time out
+
+		// task should be in running state ...
+		List<QueueTask> list = queues.list(TaskState.finished, QUEUE);
+		assertEquals(100, list.size());
+
+		info = manager.info(QUEUE);
+
+		assertEquals(100, info.getFinishedTasks());
+		assertEquals(5, info.getRunningTasks()); // 5 tasks stuck in running mode ... purge should fail them
+		assertEquals(105, info.getTotalTasks());
+
+		// get some statistics
+		QueuePurger purger = new QueuePurger(queues, QUEUE, settings);
+		purger.run();
+
+		info = manager.info(QUEUE);
+
+		assertEquals(0, info.getFinishedTasks());
+		assertEquals(100, info.getPurgeTasks());
+		assertEquals(100, info.getTotalFinished());
+		assertEquals(5, info.getFailedTasks());
+		assertEquals(105, info.getTotalTasks());
+
+		TaskStatistics stats = info.getStatistics(TaskState.finished);
+
+		log.info("Min execution time: " + stats.getMinExecutionTime());
+		log.info("Max execution time: " + stats.getMaxExecutionTime());
+		log.info("Average execution time: " + stats.getAverageExecutionTime());
+		log.info("Total execution time: " + stats.getTotalExecutionTime());
+
+		log.info("Min job run time: " + stats.getMinJobRunTime());
+		log.info("Max job run time: " + stats.getMaxJobRunTime());
+		log.info("Average job run time: " + stats.getAverageJobRunTime());
+		log.info("Total job run time: " + stats.getTotalJobRunTime());
+
+		assertEquals(100, stats.getCount());
+		assertTrue(stats.getMinJobRunTime() >= 1000);
+
+		assertTrue(stats.getMaxExecutionTime() < 30 * 1000); // last task waited at least 20s + 5s (time out ... ) ...
+
+		//
+		list = queues.list(TaskState.failed, QUEUE);
+		assertEquals(5, list.size());
+	}
 }

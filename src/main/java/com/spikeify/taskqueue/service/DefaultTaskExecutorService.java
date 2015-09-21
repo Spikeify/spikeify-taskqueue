@@ -135,6 +135,13 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 
 	@Override
 	public boolean isRunning() {
+
 		return currentJob != null;
+	}
+
+	@Override
+	public void reset() {
+
+		currentJob = null;
 	}
 }

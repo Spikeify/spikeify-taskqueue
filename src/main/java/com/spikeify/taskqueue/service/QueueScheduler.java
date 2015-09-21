@@ -21,7 +21,7 @@ public class QueueScheduler implements Runnable {
 
 	public QueueScheduler(TaskExecutorService executorService, int timeoutInSeconds, TaskContext threadContext) {
 
-		Assert.notNull(executorService, "Missing queue executro service!");
+		Assert.notNull(executorService, "Missing queue executor service!");
 
 		executor = executorService;
 		taskTimeout = timeoutInSeconds;
@@ -62,10 +62,12 @@ public class QueueScheduler implements Runnable {
 				if (!service.awaitTermination(taskTimeout, TimeUnit.SECONDS)) {
 
 					service.shutdownNow();
+
 					result = worker.getResult();
 
 					if (result == null) {
 						result = TaskResult.failed();
+						worker.reset();
 					}
 				}
 				else {
@@ -126,6 +128,11 @@ public class QueueScheduler implements Runnable {
 		public void run() {
 
 			result = executor.execute(context);
+		}
+
+		public void reset() {
+
+			executor.reset();
 		}
 	}
 }

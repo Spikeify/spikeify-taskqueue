@@ -20,5 +20,13 @@ public interface TaskExecutorService {
 	 */
 	TaskResult execute(TaskContext context);
 
+	/**
+	 * @return true if job is running, false if not
+	 */
 	boolean isRunning();
+
+	/**
+	 * performs clean up after thread interruption (if any) to avoid locking
+	 */
+	void reset();
 }
