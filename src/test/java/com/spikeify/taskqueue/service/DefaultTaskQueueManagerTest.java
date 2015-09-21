@@ -5,10 +5,7 @@ import com.spikeify.taskqueue.LongRunningTask;
 import com.spikeify.taskqueue.TestHelper;
 import com.spikeify.taskqueue.TestTask;
 import com.spikeify.taskqueue.TimeoutTask;
-import com.spikeify.taskqueue.entities.QueueInfo;
-import com.spikeify.taskqueue.entities.QueueSettings;
-import com.spikeify.taskqueue.entities.QueueTask;
-import com.spikeify.taskqueue.entities.TaskState;
+import com.spikeify.taskqueue.entities.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,6 +13,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static com.spikeify.taskqueue.service.DefaultTaskQueueManager.SLEEP_WAITING_FOR_TASKS;
+import static com.spikeify.taskqueue.service.DefaultTaskQueueManager.log;
 import static org.junit.Assert.*;
 
 public class DefaultTaskQueueManagerTest {
@@ -113,18 +111,16 @@ public class DefaultTaskQueueManagerTest {
 		// wait for task to execute (5s most)
 		Thread.sleep(2000);
 
-
-		queues.add(new TestTask(4), QUEUE); // add one more tasks
-
 		List<QueueTask> list = queues.list(TaskState.finished, QUEUE);
 		assertEquals(3, list.size());
+
+		queues.add(new TestTask(4), QUEUE); // add one more tasks
 
 		list = queues.list(TaskState.queued, QUEUE);
 		assertEquals(1, list.size());
 
 		// wait so task can finish (10s)
 		Thread.sleep(SLEEP_WAITING_FOR_TASKS * 1000);
-
 
 		list = queues.list(TaskState.finished, QUEUE);
 		assertEquals(4, list.size());
@@ -243,5 +239,57 @@ public class DefaultTaskQueueManagerTest {
 
 		list = queues.list(TaskState.failed, QUEUE);
 		assertEquals(1, list.size());
+	}
+
+	@Test
+	public void multipleThreadsOnOneManager() throws InterruptedException {
+
+		String QUEUE = "multipleThreadsOnOneManager";
+		TaskQueueService service = new DefaultTaskQueueService(spikeify);
+		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
+		manager.register(QUEUE, false);
+
+
+		QueueInfo info = manager.info(QUEUE);
+		QueueSettings settings = info.getSettings();
+		settings.setTaskTimeoutSeconds(10);
+		settings.setMaxThreads(5);
+
+		manager.set(QUEUE, settings); // 10 seconds for tasks to time out
+
+		for (int i = 0; i < 100; i++) {
+			service.add(new LongRunningTask(1000), QUEUE); // one second for each task (on 5 threads this should take 20s)
+		}
+
+
+		manager.start(QUEUE);
+
+		Thread.sleep(25 * 1000); // wait 20+ seconds ... task should be put in success
+
+		// task should be in running state ...
+		List<QueueTask> list = queues.list(TaskState.finished, QUEUE);
+		assertEquals(100, list.size());
+
+		// get some statisics
+		QueuePurger purger = new QueuePurger(queues, QUEUE, settings);
+		purger.run();
+
+		info = manager.info(QUEUE);
+		TaskStatistics stats = info.getStatistics(TaskState.finished);
+
+		log.info("Min execution time: " + stats.getMinExecutionTime());
+		log.info("Max execution time: " + stats.getMaxExecutionTime());
+		log.info("Average execution time: " + stats.getAverageExecutionTime());
+		log.info("Total execution time: " + stats.getTotalExecutionTime());
+
+		log.info("Min job run time: " + stats.getMinJobRunTime());
+		log.info("Max job run time: " + stats.getMaxJobRunTime());
+		log.info("Average job run time: " + stats.getAverageJobRunTime());
+		log.info("Total job run time: " + stats.getTotalJobRunTime());
+
+		assertEquals(100, stats.getCount());
+		assertTrue(stats.getMinJobRunTime() >= 1000);
+
+		assertTrue(stats.getMaxExecutionTime() < 25 * 1000); // last task waited at least 20s ...
 	}
 }

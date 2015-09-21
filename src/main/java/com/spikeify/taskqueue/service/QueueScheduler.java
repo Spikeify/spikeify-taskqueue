@@ -15,17 +15,15 @@ public class QueueScheduler implements Runnable {
 
 	private static final Logger log = Logger.getLogger(QueueScheduler.class.getSimpleName());
 
-	private final TaskQueueService queues;
 	private final TaskExecutorService executor;
 	private final TaskContext context;
 	private final int taskTimeout;
 
-	public QueueScheduler(TaskQueueService queueService, String queueName, int timeoutInSeconds, TaskContext threadContext) {
+	public QueueScheduler(TaskExecutorService executorService, int timeoutInSeconds, TaskContext threadContext) {
 
-		Assert.notNull(queueService, "Missing queue service!");
+		Assert.notNull(executorService, "Missing queue executro service!");
 
-		queues = queueService;
-		executor = new DefaultTaskExecutorService(queues, queueName);
+		executor = executorService;
 		taskTimeout = timeoutInSeconds;
 		context = threadContext;
 	}
@@ -67,7 +65,7 @@ public class QueueScheduler implements Runnable {
 					result = worker.getResult();
 
 					if (result == null) {
-						TaskResult.failed();
+						result = TaskResult.failed();
 					}
 				}
 				else {

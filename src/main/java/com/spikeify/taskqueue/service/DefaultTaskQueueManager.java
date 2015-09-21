@@ -4,7 +4,10 @@ import com.spikeify.Spikeify;
 import com.spikeify.Work;
 import com.spikeify.commands.AcceptFilter;
 import com.spikeify.taskqueue.TaskContext;
-import com.spikeify.taskqueue.entities.*;
+import com.spikeify.taskqueue.entities.QueueInfo;
+import com.spikeify.taskqueue.entities.QueueInfoUpdater;
+import com.spikeify.taskqueue.entities.QueueSettings;
+import com.spikeify.taskqueue.entities.TaskState;
 import com.spikeify.taskqueue.utils.Assert;
 
 import java.util.ArrayList;
@@ -107,6 +110,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 		save(queueName, new QueueInfoUpdater() {
 			@Override
 			public void update(QueueInfo info) {
+
 				info.reset();
 			}
 		});
@@ -157,6 +161,8 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 
 		List<QueueInfo> found = getQueues(queueNames);
 
+		// each queue has it's own thread pool with max threads running
+		// make sure there are not to many queues with to many threads
 		for (QueueInfo queue : found) {
 
 			String name = queue.getName();
@@ -173,16 +179,21 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 			// queue execution
 			TaskContext context = new TaskThreadPoolContext(executorService);
 
-			executorService.scheduleAtFixedRate(new QueueScheduler(queues, name, settings.getTaskTimeoutSeconds(), context),
-												SLEEP_WAITING_FOR_START,
-												SLEEP_WAITING_FOR_TASKS,
-												TimeUnit.SECONDS);
+			// create maxThread schedulers running tasks per machine ...
+			for (int i = 0; i < settings.getMaxThreads(); i++) {
+				TaskExecutorService executor = new DefaultTaskExecutorService(queues, name);
+				executorService.scheduleAtFixedRate(new QueueScheduler(executor, settings.getTaskTimeoutSeconds(), context),
+													SLEEP_WAITING_FOR_START,
+													SLEEP_WAITING_FOR_TASKS,
+													TimeUnit.SECONDS);
+			}
 
-			// failed and finished task purging
+			// add purge task to clean up failed and finished tasks
 			executorService.scheduleAtFixedRate(new QueuePurger(queues, name, settings),
 												SLEEP_WAITING_FOR_PURGE,
 												SLEEP_WAITING_FOR_PURGE,
 												TimeUnit.SECONDS);
+
 
 			// store execution into thread pool by queue name
 			threadPool.put(name, executorService);
@@ -272,6 +283,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 		save(queueName, new QueueInfoUpdater() {
 			@Override
 			public void update(QueueInfo info) {
+
 				info.setSettings(settings);
 			}
 		});
