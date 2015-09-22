@@ -186,8 +186,8 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 				TaskExecutorService executor = new DefaultTaskExecutorService(queues, name);
 				executorService.scheduleAtFixedRate(new QueueScheduler(executor, settings.getTaskTimeoutSeconds(), context),
 													SLEEP_WAITING_FOR_START + (100 * i), // add some delay so threads start with an offset
-													SLEEP_WAITING_FOR_TASKS,
-													TimeUnit.SECONDS);
+													SLEEP_WAITING_FOR_TASKS * 1000,
+													TimeUnit.MILLISECONDS);
 			}
 
 			// add purge task to clean up failed and finished tasks

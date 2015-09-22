@@ -264,7 +264,7 @@ public class DefaultTaskQueueManagerTest {
 
 		manager.start(QUEUE);
 
-		Thread.sleep(25 * 1000); // wait 20+ seconds ... task should be put in success
+		Thread.sleep(35 * 1000); // wait 20+ seconds ... task should be put in success
 
 		// task should be in running state ...
 		List<QueueTask> list = queues.list(TaskState.finished, QUEUE);
@@ -320,7 +320,7 @@ public class DefaultTaskQueueManagerTest {
 
 		manager.start(QUEUE);
 
-		Thread.sleep(50 * 1000); // wait all time out
+		Thread.sleep(60 * 1000); // wait all time out
 
 		// task should be in running state ...
 		List<QueueTask> list = queues.list(TaskState.finished, QUEUE);
