@@ -57,6 +57,13 @@ public interface TaskQueueManager {
 	void start(String... queueNames) throws InterruptedException;
 
 	/**
+	 * Returns instance of task executor service to be used when executing jobs
+	 * @param queueName name of queue
+	 * @return executor service
+	 */
+	TaskExecutorService getExecutor(String queueName);
+
+	/**
 	 * Stops queues - stops all running tasks/threads (on given JVM)
 	 *
 	 * @param queueNames to be stopped or empty to stop all enabled queues

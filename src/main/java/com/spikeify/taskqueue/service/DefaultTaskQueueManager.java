@@ -183,7 +183,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 			// create maxThread schedulers running tasks per machine ...
 			for (int i = 0; i < settings.getMaxThreads(); i++) {
 				// each thread must have it's own executor service
-				TaskExecutorService executor = new DefaultTaskExecutorService(queues, name);
+				TaskExecutorService executor = getExecutor(name);
 				executorService.scheduleAtFixedRate(new QueueScheduler(executor, settings.getTaskTimeoutSeconds(), context),
 													SLEEP_WAITING_FOR_START + (100 * i), // add some delay so threads start with an offset
 													SLEEP_WAITING_FOR_TASKS * 1000,
@@ -201,6 +201,12 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 			threadPool.put(name, executorService);
 			log.info("Started queue: " + name);
 		}
+	}
+
+	@Override
+	public TaskExecutorService getExecutor(String queueName) {
+
+		return new DefaultTaskExecutorService(queues, queueName);
 	}
 
 	@Override
