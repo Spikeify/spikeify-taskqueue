@@ -177,7 +177,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 			// will start x-threads per queue and monitor them (every 10 seconds)
 			ScheduledThreadPoolExecutor executorService = new ScheduledThreadPoolExecutor(settings.getMaxThreads());
 
-			// queue execution
+			// queue execution (create global context to allow gracefull thread interruption)
 			TaskContext context = new TaskThreadPoolContext(executorService);
 
 			// create maxThread schedulers running tasks per machine ...
@@ -185,7 +185,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 				// each thread must have it's own executor service
 				TaskExecutorService executor = new DefaultTaskExecutorService(queues, name);
 				executorService.scheduleAtFixedRate(new QueueScheduler(executor, settings.getTaskTimeoutSeconds(), context),
-													SLEEP_WAITING_FOR_START,
+													SLEEP_WAITING_FOR_START + (100 * i), // add some delay so threads start with an offset
 													SLEEP_WAITING_FOR_TASKS,
 													TimeUnit.SECONDS);
 			}
