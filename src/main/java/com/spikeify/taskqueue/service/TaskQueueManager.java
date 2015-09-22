@@ -92,9 +92,10 @@ public interface TaskQueueManager {
 	 * <p>
 	 * Best invoked from a cron job or similar
 	 *
+	 * @param queueNames list of queues to check / null or empty to check them all
 	 * @throws InterruptedException when interrupted
 	 */
-	void check() throws InterruptedException;
+	void check(String... queueNames) throws InterruptedException;
 
 	/**
 	 * Sets queue settings

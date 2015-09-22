@@ -9,6 +9,7 @@ import com.spikeify.taskqueue.entities.QueueInfoUpdater;
 import com.spikeify.taskqueue.entities.QueueSettings;
 import com.spikeify.taskqueue.entities.TaskState;
 import com.spikeify.taskqueue.utils.Assert;
+import com.spikeify.taskqueue.utils.StringUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -250,30 +251,44 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	}
 
 	@Override
-	public void check() throws InterruptedException {
+	public void check(String... queueNames) throws InterruptedException {
 
 		List<QueueInfo> queues = list(true); // only enabled queues are "checked"
 
 		// check if all queues are started on this JVM
 		for (QueueInfo info : queues) {
 
-			// get latest from database
-			QueueInfo original = sfy.get(QueueInfo.class).key(info.getName()).now();
+			if (queueNames == null || queueNames.length == 0 || isPresent(queueNames, info.getName())) {
 
-			boolean isStarted = original.isStarted();
-			boolean isInPool = threadPool.containsKey(original.getName());
+				// get latest from database
+				QueueInfo original = sfy.get(QueueInfo.class).key(info.getName()).now();
 
-			// queue should be started but is not
-			if (isStarted && !isInPool) {
-				start(original.getName());
-				continue;
-			}
+				boolean isStarted = original.isStarted();
+				boolean isInPool = threadPool.containsKey(original.getName());
 
-			// queue should be stopped ..
-			if (!isStarted && isInPool) {
-				stop(original.getName());
+				// queue should be started but is not
+				if (isStarted && !isInPool) {
+					start(original.getName());
+					continue;
+				}
+
+				// queue should be stopped ..
+				if (!isStarted && isInPool) {
+					stop(original.getName());
+				}
 			}
 		}
+	}
+
+	private boolean isPresent(String[] queueNames, String name) {
+
+		for (String queue: queueNames) {
+			if (StringUtils.equals(name, queue)) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	@Override
