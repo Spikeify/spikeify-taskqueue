@@ -9,7 +9,6 @@ import com.spikeify.taskqueue.entities.QueueInfoUpdater;
 import com.spikeify.taskqueue.entities.QueueSettings;
 import com.spikeify.taskqueue.entities.TaskState;
 import com.spikeify.taskqueue.utils.Assert;
-import com.spikeify.taskqueue.utils.StringUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -217,9 +216,9 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 		for (QueueInfo queue : found) {
 
 			String name = queue.getName();
-			startQueue(name, false);
+			startQueue(name, false); // stop queue
 
-			stopRunningThreads(name);
+			stopRunningThreads(name); // remove threads from pool
 			log.info("Stopped queue: " + name);
 		}
 	}
@@ -259,42 +258,29 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	@Override
 	public void check(String... queueNames) throws InterruptedException {
 
-		List<QueueInfo> queues = list(true); // only enabled queues are "checked"
+		List<QueueInfo> queues = getQueues(queueNames); // only enabled queues are "checked"
 
 		// check if all queues are started on this JVM
 		for (QueueInfo info : queues) {
 
-			if (queueNames == null || queueNames.length == 0 || isPresent(queueNames, info.getName())) {
 
-				// get latest from database
-				QueueInfo original = sfy.get(QueueInfo.class).key(info.getName()).now();
+			// get latest from database
+			QueueInfo original = sfy.get(QueueInfo.class).key(info.getName()).now();
 
-				boolean isStarted = original.isStarted();
-				boolean isInPool = threadPool.containsKey(original.getName());
+			boolean isStarted = original.isStarted();
+			boolean isInPool = threadPool.containsKey(original.getName());
 
-				// queue should be started but is not
-				if (isStarted && !isInPool) {
-					start(original.getName());
-					continue;
-				}
+			// queue should be started but is not
+			if (isStarted && !isInPool) {
+				start(original.getName());
+				continue;
+			}
 
-				// queue should be stopped ..
-				if (!isStarted && isInPool) {
-					stop(original.getName());
-				}
+			// queue should be stopped ..
+			if (!isStarted && isInPool) {
+				stop(original.getName());
 			}
 		}
-	}
-
-	private boolean isPresent(String[] queueNames, String name) {
-
-		for (String queue: queueNames) {
-			if (StringUtils.equals(name, queue)) {
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	@Override
@@ -322,11 +308,11 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 			for (String name : queueNames) {
 
 				QueueInfo queue = info(name);
-
 				Assert.notNull(queue, "Queue: " + name + ", is not registered!");
-				Assert.isTrue(queue.isEnabled(), "Queue: " + name + " is not enabled!");
 
-				list.add(queue);
+				if (queue.isEnabled()) {
+					list.add(queue);
+				}
 			}
 
 			return list;

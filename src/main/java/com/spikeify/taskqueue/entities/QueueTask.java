@@ -347,11 +347,17 @@ public class QueueTask {
 	 */
 	public boolean isOlderThan(int ageInMinutes) {
 
+		if (ageInMinutes == 0)
+			return true;
+
 		long difference = System.currentTimeMillis() - updateTime;
 		return difference >= ((long)ageInMinutes * 1000L * 60L);
 	}
 
 	public boolean isOlderThanSeconds(int ageInSeconds) {
+
+		if (ageInSeconds == 0)
+			return true;
 
 		long difference = System.currentTimeMillis() - updateTime;
 		return difference >= ((long)ageInSeconds * 1000L);

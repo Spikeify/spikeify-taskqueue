@@ -37,7 +37,7 @@ public class DefaultTaskQueueManagerTest {
 	@After
 	public void tearDown() {
 
-		spikeify.truncateNamespace("test");
+	//	spikeify.truncateNamespace("test");
 	}
 
 	@Test
@@ -306,33 +306,38 @@ public class DefaultTaskQueueManagerTest {
 		QueueSettings settings = info.getSettings();
 		settings.setTaskTimeoutSeconds(5);
 		settings.setMaxThreads(5);
+		settings.setPurgeFailedAfterMinutes(10);
+		settings.setPurgeSuccessfulAfterMinutes(10);
 
-		manager.set(QUEUE, settings); // 10 seconds for tasks to time out
+		manager.set(QUEUE, settings); // 5 seconds for tasks to time out
 
 		for (int i = 0; i < 100; i++) {
 			if (i > 5 && i <= 10) {
 				service.add(new TimeoutTask(), QUEUE); // add 5 tasks that will time out
 			}
 
-			service.add(new LongRunningTask(1000), QUEUE); // one second for each task (on 5 threads this should take 20s)
+			service.add(new LongRunningTask(500), QUEUE); // half a second for each task (100 * 500 = 50 000 / 5 = 10 000 - on 5 threads this should take 10s)
+			// + 5 * 500 = 2 500 for failing * 3 times retry = 7 500
+			// total at least: 20s
 		}
-
 
 		manager.start(QUEUE);
 
-		Thread.sleep(65 * 1000); // wait all time out
-
-		// task should be in running state ...
-		List<QueueTask> list = queues.list(TaskState.finished, QUEUE);
-		assertEquals(100, list.size());
+		Thread.sleep(25 * 1000); // wait all time out
 
 		info = manager.info(QUEUE);
 
-		assertEquals(100, info.getFinishedTasks());
-		assertEquals(5, info.getRunningTasks()); // 5 tasks stuck in running mode ... purge should fail them
+		assertEquals(100, info.getTotalFinished()); // 100 should be finished
+		assertEquals(5, info.getRunningTasks());    // 5 tasks stuck in running mode ... purge should fail them
 		assertEquals(105, info.getTotalTasks());
 
 		// get some statistics
+		// set purge lower
+		settings.setPurgeFailedAfterMinutes(0);
+		settings.setPurgeSuccessfulAfterMinutes(0);
+		settings.setTaskTimeoutSeconds(1);
+		manager.set(QUEUE, settings); // 1 seconds for tasks to time out
+
 		QueuePurger purger = new QueuePurger(queues, QUEUE, settings);
 		purger.run();
 
@@ -357,12 +362,12 @@ public class DefaultTaskQueueManagerTest {
 		log.info("Total job run time: " + stats.getTotalJobRunTime());
 
 		assertEquals(100, stats.getCount());
-		assertTrue(stats.getMinJobRunTime() >= 1000);
+		assertTrue(stats.getMinJobRunTime() >= 500);
 
-		assertTrue(stats.getMaxExecutionTime() < 30 * 1000); // last task waited at least 20s + 5s (time out ... ) ...
+		assertTrue(stats.getMaxExecutionTime() < 25 * 1000); // last task waited at least 20s + 5s (time out ... ) ...
 
 		//
-		list = queues.list(TaskState.failed, QUEUE);
+		List<QueueTask> list = queues.list(TaskState.failed, QUEUE);
 		assertEquals(5, list.size());
 	}
 }
