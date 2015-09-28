@@ -28,8 +28,9 @@ public interface TaskQueueManager {
 	 * Will reset all statistics data and counts
 	 *
 	 * @param queueName name of queue
+	 * @param force true will reset also running task counters (running, queued ... etc) might result in negative counters!
 	 */
-	void resetStatistics(String queueName);
+	void resetStatistics(String queueName, boolean force);
 
 	/**
 	 * Lists queues registered

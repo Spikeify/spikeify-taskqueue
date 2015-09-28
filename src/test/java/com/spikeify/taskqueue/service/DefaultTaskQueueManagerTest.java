@@ -294,6 +294,19 @@ public class DefaultTaskQueueManagerTest {
 		assertTrue(stats.getMinJobRunTime() >= 1000);
 
 		assertTrue(stats.getMaxExecutionTime() < 25 * 1000); // last task waited at least 20s ...
+
+		// check if reset works
+		manager.resetStatistics(QUEUE);
+		info = manager.info(QUEUE);
+
+		assertEquals(0, info.getFinishedTasks());
+		assertEquals(0, info.getRunningTasks());
+		assertEquals(0, info.getQueuedTasks());
+
+		assertEquals(0, info.getTotalTasks());
+		assertEquals(0, info.getTotalRetries());
+		assertEquals(0, info.getTotalFailed());
+		assertEquals(0, info.getTotalFinished());
 	}
 
 	@Test

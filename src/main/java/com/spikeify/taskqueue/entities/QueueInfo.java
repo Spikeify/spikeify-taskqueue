@@ -59,11 +59,10 @@ public class QueueInfo {
 	/**
 	 * JSON serialized map of statistics data {@link TaskState} {@link TaskStatistics}
 	 **/
-	protected HashMap<TaskState, String> statistics;
+	protected HashMap<TaskState, String> statistics = new HashMap<>();
 
 	protected QueueInfo() {
 		// for Spikeify
-		reset();
 	}
 
 	public QueueInfo(String queueName) {
@@ -75,7 +74,7 @@ public class QueueInfo {
 		name = queueName.trim();
 
 		setSettings(new QueueSettings()); // set default settings ... once queue is created
-		reset();
+		reset(true);
 	}
 
 	public String getName() {
@@ -113,13 +112,23 @@ public class QueueInfo {
 		started = start;
 	}
 
-	public void reset() {
+	public void reset(boolean force) {
 
 		// reset total counts
 		totalTasks = 0;
 		totalFinished = 0;
 		totalFailed = 0;
 		totalRetries = 0;
+
+		// running counters
+		if (force) {
+			queued = 0;
+			running = 0;
+			purge = 0;
+			interrupted = 0;
+			failed = 0;
+			finished = 0;
+		}
 
 		// purge statistics if available
 		statistics = new HashMap<>();

@@ -90,13 +90,13 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	}
 
 	@Override
-	public void resetStatistics(String queueName) {
+	public void resetStatistics(String queueName, boolean force) {
 
 		save(queueName, new QueueInfoUpdater() {
 			@Override
 			public void update(QueueInfo info) {
 
-				info.reset();
+				info.reset(force);
 			}
 		});
 	}
