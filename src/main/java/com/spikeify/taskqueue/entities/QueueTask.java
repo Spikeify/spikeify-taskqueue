@@ -22,6 +22,7 @@ public class QueueTask {
 	private static final int MAX_RETRIES = 3;
 
 	private static final ObjectMapper jsonMapper = new ObjectMapper();
+
 	static {
 		jsonMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
 	}
@@ -366,24 +367,33 @@ public class QueueTask {
 
 	/**
 	 * Compares last update time with current time ...
+	 *
 	 * @param ageInMinutes number of minutes to pass (age)
 	 * @return true if task is older than given minutes, false otherwise
 	 */
 	public boolean isOlderThan(int ageInMinutes) {
 
-		if (ageInMinutes == 0)
+		if (ageInMinutes == 0) {
 			return true;
+		}
 
 		long difference = System.currentTimeMillis() - updateTime;
-		return difference >= ((long)ageInMinutes * 1000L * 60L);
+		return difference >= ((long) ageInMinutes * 1000L * 60L);
 	}
 
+	/**
+	 * Compares last update time with current time ...
+	 *
+	 * @param ageInSeconds number of seconds to pass (age)
+	 * @return true if task is older than given seconds, false otherwise
+	 */
 	public boolean isOlderThanSeconds(int ageInSeconds) {
 
-		if (ageInSeconds == 0)
+		if (ageInSeconds == 0) {
 			return true;
+		}
 
 		long difference = System.currentTimeMillis() - updateTime;
-		return difference >= ((long)ageInSeconds * 1000L);
+		return difference >= ((long) ageInSeconds * 1000L);
 	}
 }

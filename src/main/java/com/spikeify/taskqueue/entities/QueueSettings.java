@@ -38,12 +38,12 @@ public class QueueSettings {
 	/**
 	 * Number of seconds queue sleeps to check if new tasks have arrived
 	 */
-	private long queueMaxSleepTime = 10;
+	private long queueMaxSleepTimeSeconds = 10;
 
 	/**
 	 * Number of seconds purge sleeps before it is triggered (execute every 60 seconds)
 	 */
-	private long queuePurgeSleepTime = 60;
+	private long queuePurgeSleepTimeSeconds = 60;
 
 
 	@JsonProperty("purgeSuccessful")
@@ -100,32 +100,32 @@ public class QueueSettings {
 	}
 
 	@JsonProperty("checkTasks")
-	public long getQueueMaxSleepTime() {
+	public long getQueueMaxSleepTimeSeconds() {
 
-		return queueMaxSleepTime;
+		return queueMaxSleepTimeSeconds;
 	}
 
 	@JsonProperty("checkTasks")
-	public void setQueueMaxSleepTime(long queueMaxSleepTime) {
+	public void setQueueMaxSleepTimeSeconds(long queueMaxSleepTimeSeconds) {
 
-		Assert.isTrue(queueMaxSleepTime > 0, "Number of threads must be >= 1!");
-		Assert.isTrue(queueMaxSleepTime <= 600, "Number of threads must be <= 600!");
+		Assert.isTrue(queueMaxSleepTimeSeconds > 0, "Number of threads must be >= 1!");
+		Assert.isTrue(queueMaxSleepTimeSeconds <= 600, "Number of threads must be <= 600!");
 
-		this.queueMaxSleepTime = queueMaxSleepTime;
+		this.queueMaxSleepTimeSeconds = queueMaxSleepTimeSeconds;
 	}
 
 	@JsonProperty("purgeTasks")
-	public long getQueuePurgeSleepTime() {
+	public long getQueuePurgeSleepTimeSeconds() {
 
-		return queuePurgeSleepTime;
+		return queuePurgeSleepTimeSeconds;
 	}
 
 	@JsonProperty("purgeTasks")
-	public void setQueuePurgeSleepTime(long queuePurgeSleepTime) {
+	public void setQueuePurgeSleepTimeSeconds(long queuePurgeSleepTimeSeconds) {
 
-		Assert.isTrue(queueMaxSleepTime > 0, "Number of threads must be >= 1!");
-		Assert.isTrue(queueMaxSleepTime <= 600, "Number of threads must be <= 600!");
+		Assert.isTrue(queueMaxSleepTimeSeconds > 0, "Number of threads must be >= 1!");
+		Assert.isTrue(queueMaxSleepTimeSeconds <= 600, "Number of threads must be <= 600!");
 
-		this.queuePurgeSleepTime = queuePurgeSleepTime;
+		this.queuePurgeSleepTimeSeconds = queuePurgeSleepTimeSeconds;
 	}
 }

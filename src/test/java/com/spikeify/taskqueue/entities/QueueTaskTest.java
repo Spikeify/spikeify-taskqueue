@@ -12,6 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class QueueTaskTest {
@@ -122,5 +123,26 @@ public class QueueTaskTest {
 
 			throw e;
 		}
+	}
+
+	@Test
+	public void testIsOlderThan() {
+
+		String QUEUE = "testIsOlderThan";
+
+		TestTask job = new TestTask(0);
+		QueueTask task = new QueueTask(job, QUEUE);
+
+		assertTrue(task.isOlderThan(0));
+		assertFalse(task.isOlderThan(1));
+
+		task.updateTime = System.currentTimeMillis() - (1000L * 60L * 10L); // 10 minutes old
+		assertFalse(task.isOlderThan(11));
+		assertTrue(task.isOlderThan(10));
+	}
+
+	@Test
+	public void testIsOlderThanSeconds() {
+
 	}
 }
