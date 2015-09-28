@@ -12,11 +12,12 @@ import org.junit.Test;
 
 import java.util.List;
 
-import static com.spikeify.taskqueue.service.DefaultTaskQueueManager.SLEEP_WAITING_FOR_TASKS;
 import static com.spikeify.taskqueue.service.DefaultTaskQueueManager.log;
 import static org.junit.Assert.*;
 
 public class DefaultTaskQueueManagerTest {
+
+	private static final int SLEEP_WAITING_FOR_TASKS = 10;
 
 	private Spikeify spikeify;
 

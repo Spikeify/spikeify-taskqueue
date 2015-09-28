@@ -25,7 +25,7 @@ public class DefaultTaskExecutorServiceTest {
 	@After
 	public void tearDown() {
 
-		spikeify.truncateNamespace("test");
+	//	spikeify.truncateNamespace("test");
 	}
 
 	@Test

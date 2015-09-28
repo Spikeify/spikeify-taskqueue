@@ -32,16 +32,16 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	 * Number of seconds to wait before starting up scheduling
 	 */
 	static final long SLEEP_WAITING_FOR_START = 0;
-
-	/**
+/*
+	*//**
 	 * Number of seconds schedule sleeps when no tasks are available
-	 */
+	 *//*
 	static final long SLEEP_WAITING_FOR_TASKS = 10;
 
-	/**
+	*//**
 	 * Number of seconds waiting to trigger purge action on queue
-	 */
-	static final long SLEEP_WAITING_FOR_PURGE = 60;
+	 *//*
+	static final long SLEEP_WAITING_FOR_PURGE = 60;*/
 
 	/**
 	 * Number of seconds waiting for a task to shut down gracefully
@@ -183,16 +183,17 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 			for (int i = 0; i < settings.getMaxThreads(); i++) {
 				// each thread must have it's own executor service
 				TaskExecutorService executor = getExecutor(name);
+
 				executorService.scheduleAtFixedRate(new QueueScheduler(executor, settings.getTaskTimeoutSeconds(), context),
-													SLEEP_WAITING_FOR_START + (100 * i), // add some delay so threads start with an offset
-													SLEEP_WAITING_FOR_TASKS * 1000,
+													settings.getQueueMaxSleepTime() + (100 * i), // add some delay so threads start with an offset
+													settings.getQueueMaxSleepTime() * 1000,
 													TimeUnit.MILLISECONDS);
 			}
 
 			// add purge task to clean up failed and finished tasks
 			executorService.scheduleAtFixedRate(new QueuePurger(queues, name, settings),
-												SLEEP_WAITING_FOR_PURGE,
-												SLEEP_WAITING_FOR_PURGE,
+												settings.getQueuePurgeSleepTime(),
+												settings.getQueuePurgeSleepTime(),
 												TimeUnit.SECONDS);
 
 

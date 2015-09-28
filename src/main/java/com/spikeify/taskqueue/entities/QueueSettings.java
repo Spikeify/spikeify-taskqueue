@@ -35,6 +35,16 @@ public class QueueSettings {
 	 */
 	protected int maxThreads = 1;
 
+	/**
+	 * Number of seconds queue sleeps to check if new tasks have arrived
+	 */
+	private long queueMaxSleepTime = 10;
+
+	/**
+	 * Number of seconds purge sleeps before it is triggered (execute every 60 seconds)
+	 */
+	private long queuePurgeSleepTime = 60;
+
 
 	@JsonProperty("purgeSuccessful")
 	public int getPurgeSuccessfulAfterMinutes() {
@@ -87,5 +97,35 @@ public class QueueSettings {
 		Assert.isTrue(threads <= 10, "Number of threads must be <= 10!");
 
 		maxThreads = threads;
+	}
+
+	@JsonProperty("checkTasks")
+	public long getQueueMaxSleepTime() {
+
+		return queueMaxSleepTime;
+	}
+
+	@JsonProperty("checkTasks")
+	public void setQueueMaxSleepTime(long queueMaxSleepTime) {
+
+		Assert.isTrue(queueMaxSleepTime > 0, "Number of threads must be >= 1!");
+		Assert.isTrue(queueMaxSleepTime <= 600, "Number of threads must be <= 600!");
+
+		this.queueMaxSleepTime = queueMaxSleepTime;
+	}
+
+	@JsonProperty("purgeTasks")
+	public long getQueuePurgeSleepTime() {
+
+		return queuePurgeSleepTime;
+	}
+
+	@JsonProperty("purgeTasks")
+	public void setQueuePurgeSleepTime(long queuePurgeSleepTime) {
+
+		Assert.isTrue(queueMaxSleepTime > 0, "Number of threads must be >= 1!");
+		Assert.isTrue(queueMaxSleepTime <= 600, "Number of threads must be <= 600!");
+
+		this.queuePurgeSleepTime = queuePurgeSleepTime;
 	}
 }
