@@ -186,6 +186,30 @@ public class QueueTask {
 	}
 
 	/**
+	 * @return class executing the task
+	 */
+	public String getClassName() {
+
+		return className;
+	}
+
+	/**
+	 * @return time task has been started
+	 */
+	public long getStartTime() {
+
+		return startTime;
+	}
+
+	/**
+	 * @return time task has ended / succesfully or failed
+	 */
+	public long getEndTime() {
+
+		return endTime;
+	}
+
+	/**
 	 * Create new id if needed
 	 * Useful for task duplication or in case id is duplicated in database
 	 */

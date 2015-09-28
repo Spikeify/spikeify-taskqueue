@@ -16,13 +16,13 @@ public class QueueSettings {
 	 * Will purge successful tasks after completion when older than given number of minutes
 	 * 0 - will purge tasks immediately
 	 */
-	protected int purgeSuccessfulAfterMinutes = 0;
+	protected int purgeSuccessfulAfterMinutes = 10;
 
 	/**
 	 * Will trigger purge of failed tasks that are older than given number of minutes
 	 * 0 - will not purge tasks
 	 */
-	protected int purgeFailedAfterMinutes = 0;
+	protected int purgeFailedAfterMinutes = 30;
 
 	/**
 	 * Number of minutes task is considered hanged or execution takes to long

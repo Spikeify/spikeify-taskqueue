@@ -29,21 +29,6 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 	public static final Logger log = Logger.getLogger(DefaultTaskExecutorService.class.getSimpleName());
 
 	/**
-	 * Number of seconds to wait before starting up scheduling
-	 */
-	static final long SLEEP_WAITING_FOR_START = 0;
-/*
-	*//**
-	 * Number of seconds schedule sleeps when no tasks are available
-	 *//*
-	static final long SLEEP_WAITING_FOR_TASKS = 10;
-
-	*//**
-	 * Number of seconds waiting to trigger purge action on queue
-	 *//*
-	static final long SLEEP_WAITING_FOR_PURGE = 60;*/
-
-	/**
 	 * Number of seconds waiting for a task to shut down gracefully
 	 */
 	static final long MAX_SHUTDOWN_TIME = 60;

@@ -74,7 +74,7 @@ public class QueueInfo {
 		enabled = true;
 		name = queueName.trim();
 
-		setSettings(new QueueSettings());
+		setSettings(new QueueSettings()); // set default settings ... once queue is created
 		reset();
 	}
 

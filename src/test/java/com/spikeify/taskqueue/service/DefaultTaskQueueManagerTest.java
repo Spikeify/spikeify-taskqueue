@@ -255,6 +255,8 @@ public class DefaultTaskQueueManagerTest {
 		QueueSettings settings = info.getSettings();
 		settings.setTaskTimeoutSeconds(10);
 		settings.setMaxThreads(5);
+		settings.setPurgeSuccessfulAfterMinutes(0);
+		settings.setPurgeFailedAfterMinutes(0);
 
 		manager.set(QUEUE, settings); // 10 seconds for tasks to time out
 
