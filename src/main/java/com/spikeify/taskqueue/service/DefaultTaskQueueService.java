@@ -103,6 +103,10 @@ public class DefaultTaskQueueService implements TaskQueueService {
 			return null;
 		}
 
+		// this should not happen ... but bug allowed listing of "purge" task to get into this list
+		list.removeIf(task -> task.getState().equals(TaskState.purge));
+		// remove later ...
+
 		// sort by updateTime ... the older task are on top ...
 		Collections.sort(list, new Comparator<QueueTask>() {
 			@Override

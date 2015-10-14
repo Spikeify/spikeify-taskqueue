@@ -319,6 +319,7 @@ public class QueueTask {
 
 		return TaskState.running.equals(state) ||
 			   TaskState.finished.equals(state) ||
+			   TaskState.purge.equals(state) ||
 			   (TaskState.failed.equals(state) && runCount >= MAX_RETRIES);
 	}
 

@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.spikeify</groupId>
     <artifactId>taskqueue</artifactId>
-    <version>0.1.7</version>
+    <version>0.1.8</version>
     <packaging>jar</packaging>
 
     <name>Spikeify Taskqueue</name>
@@ -17,8 +17,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <version.aerospike>3.1.4</version.aerospike>
-        <version.spikeify>0.2.7</version.spikeify>
-        <version.fasterxml.jackson>[2.6,2.7)</version.fasterxml.jackson>
+        <version.spikeify>[0.2.7, 0.3)</version.spikeify>
+        <version.fasterxml.jackson>[2.6, 2.7)</version.fasterxml.jackson>
 
         <version.junit>4.12</version.junit>
         <version.mockito-all>1.10.8</version.mockito-all>
