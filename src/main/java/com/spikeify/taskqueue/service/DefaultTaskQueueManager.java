@@ -120,7 +120,6 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 		if (found != null) {
 
 			try {
-
 				stop(queueName);
 
 				// clean all tasks from queue ... none should be running anymore
@@ -129,11 +128,8 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 				queues.purge(TaskState.finished, 0, queueName);
 				queues.purge(TaskState.interrupted, 0, queueName);
 
-				if (found != null) {
-					log.info("Queue: " + queueName + ", unregistered!");
-					sfy.delete(found).now();
-				}
-
+				log.info("Queue: " + queueName + ", unregistered!");
+				sfy.delete(found).now();
 			}
 			catch (InterruptedException e) {
 				log.log(Level.SEVERE, "Failed to stop queue: " + queueName + ", can't unregister!", e);

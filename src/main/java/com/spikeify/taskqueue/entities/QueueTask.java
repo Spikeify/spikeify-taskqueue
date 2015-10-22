@@ -8,7 +8,6 @@ import com.spikeify.annotations.UserKey;
 import com.spikeify.taskqueue.Job;
 import com.spikeify.taskqueue.TaskQueueError;
 import com.spikeify.taskqueue.utils.Assert;
-import com.spikeify.taskqueue.utils.IdGenerator;
 import com.spikeify.taskqueue.utils.JsonUtils;
 
 /**
@@ -32,8 +31,9 @@ public class QueueTask {
 
 	/**
 	 * unique key assigned to task when added to queue
+	 * auto-generated
 	 */
-	@UserKey
+	@UserKey(generate = true)
 	private String id;
 
 	/**
@@ -127,9 +127,6 @@ public class QueueTask {
 		Assert.notNull(newJob, "Missing task!");
 		Assert.notNull(queueName, "Missing queue name!");
 
-		// generated id ... must check if unique before adding task to queue
-		generateId();
-
 		queue = queueName;
 
 		// initial task state ...
@@ -208,15 +205,6 @@ public class QueueTask {
 	public long getEndTime() {
 
 		return endTime;
-	}
-
-	/**
-	 * Create new id if needed
-	 * Useful for task duplication or in case id is duplicated in database
-	 */
-	public void generateId() {
-
-		id = IdGenerator.generateKey();
 	}
 
 	/**

@@ -54,25 +54,7 @@ public class DefaultTaskQueueService implements TaskQueueService {
 		Assert.notNullOrEmpty(queueName, "Missing queue name!");
 
 		QueueTask task = new QueueTask(job, queueName);
-
-		// check if ID is uniqe
-		sfy.transact(5, new Work<QueueTask>() {
-			@Override
-			public QueueTask run() {
-
-				QueueTask original = sfy.get(QueueTask.class).key(task.getId()).now();
-
-				if (original != null) { // we have a duplicate ... regenerate job id
-					log.warning("Duplicate id of job in queue: " + task.getId() + ", forcing regeneration of id!");
-					task.generateId();
-					throw new AerospikeException(3); // keep retrying
-				}
-
-				sfy.create(task).now();
-				return task;
-			}
-		});
-
+		sfy.create(task).now();
 		setQueueInfoCount(queueName, null, TaskState.queued);
 
 		// create id ... add job ...
