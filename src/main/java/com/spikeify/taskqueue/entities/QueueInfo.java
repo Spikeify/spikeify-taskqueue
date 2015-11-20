@@ -2,7 +2,6 @@ package com.spikeify.taskqueue.entities;
 
 import com.spikeify.annotations.Generation;
 import com.spikeify.annotations.UserKey;
-import com.spikeify.taskqueue.NotNullAndIgnoreUnknowns;
 import com.spikeify.taskqueue.utils.Assert;
 import com.spikeify.taskqueue.utils.JsonUtils;
 import com.spikeify.taskqueue.utils.StringUtils;
@@ -12,7 +11,6 @@ import java.util.HashMap;
 /**
  * Information and running statistics about queues
  */
-@NotNullAndIgnoreUnknowns
 public class QueueInfo {
 
 	@UserKey
