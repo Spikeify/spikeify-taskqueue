@@ -6,6 +6,7 @@ import com.spikeify.annotations.Generation;
 import com.spikeify.annotations.Indexed;
 import com.spikeify.annotations.UserKey;
 import com.spikeify.taskqueue.Job;
+import com.spikeify.taskqueue.NotNullAndIgnoreUnknowns;
 import com.spikeify.taskqueue.TaskQueueError;
 import com.spikeify.taskqueue.utils.Assert;
 import com.spikeify.taskqueue.utils.JsonUtils;
@@ -13,6 +14,7 @@ import com.spikeify.taskqueue.utils.JsonUtils;
 /**
  * Entity holding a task to be stored/retrieved in/from Aerospike database
  */
+@NotNullAndIgnoreUnknowns
 public class QueueTask {
 
 	private static final String LOCKED = "LOCKED";
