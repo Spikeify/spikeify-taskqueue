@@ -74,7 +74,7 @@ public class DefaultTaskQueueService implements TaskQueueService {
 
 		Assert.notNullOrEmpty(queueName, "Missing queue name!");
 
-		// note: query can return task that are not open anymore ... so choosing random task is ensures that tasks are distributed more or less evenly among workers
+		// note: query can return task that are not open anymore ... so choosing random task it ensures that tasks are distributed more or less evenly among workers
 		ResultSet<QueueTask> openTasks = sfy.query(QueueTask.class)
 											.filter("lockFilter", QueueTask.getLockedFilter(queueName, false))
 											.now();
@@ -85,11 +85,9 @@ public class DefaultTaskQueueService implements TaskQueueService {
 			return null;
 		}
 
-		// this should not happen ... but bug allowed listing of "purge" task to get into this list
-		list.removeIf(task -> task.getState().equals(TaskState.purge));
-		// remove later ...
-
 		// sort by updateTime ... the older task are on top ...
+		// this tries to make sure earlier tasks are executed before later tasks inserted into queue but it is not 100%
+		// so no one should rely on this fact
 		Collections.sort(list, new Comparator<QueueTask>() {
 			@Override
 			public int compare(QueueTask o1, QueueTask o2) {
@@ -176,7 +174,7 @@ public class DefaultTaskQueueService implements TaskQueueService {
 		}
 		catch (ConcurrentModificationException | AerospikeException e) {
 			// job modified by other thread ... transition failed
-			log.info("Could not transition job: " + task + " to: " + newState + ", thread collision!");
+			log.fine("Could not transition job: " + task + " to: " + newState + ", thread collision!");
 			return null;
 		}
 		catch (TaskQueueError e) {

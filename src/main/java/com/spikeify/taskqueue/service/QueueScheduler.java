@@ -38,7 +38,7 @@ public class QueueScheduler implements Runnable {
 
 		TaskContext context = getContext();
 
-		log.info("Starting task execution ...");
+		log.fine("Starting task execution ...");
 
 		int successCount = 0;
 		int allCount = 0;
@@ -97,10 +97,10 @@ public class QueueScheduler implements Runnable {
 		while (result != null);
 
 		if (interrupted) {
-			log.info("Interrupted after: " + successCount + "/" + allCount + " execution(s).");
+			log.fine("Interrupted after: " + successCount + "/" + allCount + " execution(s).");
 		}
 		else {
-			log.info("No new tasks found, stopping after: " + successCount + "/" + allCount + " execution(s).");
+			log.fine("No new tasks found, stopping after: " + successCount + "/" + allCount + " execution(s).");
 		}
 	}
 

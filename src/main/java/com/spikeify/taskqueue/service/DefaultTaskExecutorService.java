@@ -66,6 +66,7 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 			}
 
 			// check if job in running state
+			// (this might be the case as some other queue thread grabbed the task while it was in "transition")
 			started = TaskState.running.equals(next.getState());
 
 			// was successfully put in running state
@@ -94,7 +95,7 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 							break;
 					}
 
-					log.info("Task resulted in: " + result);
+					log.fine("Task resulted in: " + result);
 
 					// 4. end execution
 					return result;
