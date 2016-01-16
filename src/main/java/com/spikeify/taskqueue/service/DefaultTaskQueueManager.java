@@ -47,6 +47,11 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 
 	@Override
 	public QueueInfo register(String queueName, boolean autoStart) {
+		return register(queueName, null, autoStart);
+	}
+
+	@Override
+	public QueueInfo register(String queueName, QueueSettings settings, boolean autoStart) {
 
 		Assert.notNullOrEmpty(queueName, "Missing queue name!");
 
@@ -58,11 +63,22 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 				QueueInfo original = sfy.get(QueueInfo.class).key(queueName.trim()).now();
 
 				if (original != null) { // already registered ... just return original
+
+					if (settings != null) { // if settings are given ... then override
+						original.setSettings(settings);
+						sfy.update(original).now();
+					}
+
 					return original;
 				}
 
 				// create default queue info ...
 				QueueInfo newQueue = new QueueInfo(queueName);
+
+				if (settings != null) { // override default settings if desired
+					newQueue.setSettings(settings);
+				}
+
 				newQueue.setStarted(autoStart);
 
 				sfy.create(newQueue).now();

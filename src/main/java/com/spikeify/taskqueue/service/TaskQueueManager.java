@@ -16,6 +16,8 @@ public interface TaskQueueManager {
 	 */
 	QueueInfo register(String queueName, boolean autoStart);
 
+	QueueInfo register(String queueName, QueueSettings settings, boolean autoStart);
+
 	/**
 	 * Returns single queue info with statistics
 	 *
