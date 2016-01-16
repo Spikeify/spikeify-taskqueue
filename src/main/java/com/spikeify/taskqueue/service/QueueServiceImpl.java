@@ -1,5 +1,6 @@
 package com.spikeify.taskqueue.service;
 
+import com.spikeify.Spikeify;
 import com.spikeify.taskqueue.Job;
 import com.spikeify.taskqueue.entities.QueueInfo;
 import com.spikeify.taskqueue.entities.QueueSettings;
@@ -25,6 +26,23 @@ public class QueueServiceImpl implements QueueService {
 	 * active queues
 	 */
 	private final String[] queueNames;
+
+	/**
+	 * All default start up
+	 * @param spikeify database connection
+	 * @param queuesToRegister list of queue names
+	 */
+	public QueueServiceImpl(Spikeify spikeify, String... queuesToRegister) {
+
+		queues = new DefaultTaskQueueService(spikeify);
+		manager = new DefaultTaskQueueManager(spikeify, queues);
+
+		queueNames = queuesToRegister;
+
+		for (String queue : queueNames) {
+			manager.register(queue, null, true); // make sure queue exists ... start it up ... if first time around
+		}
+	}
 
 	/**
 	 * Register queues with default settings
