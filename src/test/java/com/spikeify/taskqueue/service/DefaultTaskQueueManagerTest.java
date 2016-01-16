@@ -214,11 +214,12 @@ public class DefaultTaskQueueManagerTest {
 		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
 		manager.register(QUEUE, false);
 
-		service.add(new TimeoutTask(), QUEUE);
+		service.add(new TimeoutTask(true), QUEUE);
 
 		QueueInfo info = manager.info(QUEUE);
 		QueueSettings settings = info.getSettings();
 		settings.setTaskTimeoutSeconds(10);
+		settings.setTaskInterruptTimeoutSeconds(0);
 
 		manager.set(QUEUE, settings); // 10 seconds for tasks to time out
 
@@ -243,6 +244,112 @@ public class DefaultTaskQueueManagerTest {
 	}
 
 	@Test
+	public void interruptTimedOutTask() throws InterruptedException {
+
+		String QUEUE = "killTimedOutTask";
+		TaskQueueService service = new DefaultTaskQueueService(spikeify);
+		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
+		manager.register(QUEUE, false);
+
+		service.add(new TimeoutTask(), QUEUE);
+
+		QueueInfo info = manager.info(QUEUE);
+		QueueSettings settings = info.getSettings();
+		settings.setTaskTimeoutSeconds(10);
+		settings.setTaskInterruptTimeoutSeconds(0);
+
+		manager.set(QUEUE, settings); // 10 seconds for tasks to time out
+
+		manager.start(QUEUE);
+
+		Thread.sleep(25 * 1000); // wait 20 seconds ... task should be put in failed state at least once
+
+		// task should be in running state ...
+		List<QueueTask> list = queues.list(TaskState.interrupted, QUEUE);
+		assertEquals(1, list.size());
+
+		// let's purge
+		QueuePurger purger = new QueuePurger(queues, QUEUE, settings);
+		purger.run();
+
+		// task will stay interrupted
+		list = queues.list(TaskState.interrupted, QUEUE);
+		assertEquals(1, list.size());
+
+		list = queues.list(TaskState.running, QUEUE);
+		assertEquals(0, list.size());
+
+		list = queues.list(TaskState.failed, QUEUE);
+		assertEquals(0, list.size());
+	}
+
+	@Test
+	public void interruptToLongRunningTask() throws InterruptedException {
+
+		String QUEUE = "interruptToLongRunningTask";
+		TaskQueueService service = new DefaultTaskQueueService(spikeify);
+		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
+		manager.register(QUEUE, false);
+
+		service.add(new LongRunningTask(), QUEUE);
+
+		QueueInfo info = manager.info(QUEUE);
+		QueueSettings settings = info.getSettings();
+		settings.setTaskTimeoutSeconds(10);
+		settings.setTaskInterruptTimeoutSeconds(10); // 10 seconds to finish of (it should last 3 seconds)
+
+		manager.set(QUEUE, settings); // 10 seconds for tasks to time out
+
+		manager.start(QUEUE);
+
+		Thread.sleep(20 * 1000); // wait 20 seconds ... task should be put in failed state at least once
+
+		// task should be in running state ...
+		List<QueueTask> list = queues.list(TaskState.interrupted, QUEUE);
+		assertEquals(1, list.size());
+
+		// let's purge
+		QueuePurger purger = new QueuePurger(queues, QUEUE, settings);
+		purger.run();
+
+		// task will stay interrupted
+		list = queues.list(TaskState.interrupted, QUEUE);
+		assertEquals(1, list.size());
+
+		list = queues.list(TaskState.running, QUEUE);
+		assertEquals(0, list.size());
+
+		list = queues.list(TaskState.failed, QUEUE);
+		assertEquals(0, list.size());
+	}
+
+	@Test
+	public void killToLongRunningTask() throws InterruptedException {
+
+		String QUEUE = "killToLongRunningTask";
+		TaskQueueService service = new DefaultTaskQueueService(spikeify);
+		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
+		manager.register(QUEUE, false);
+
+		service.add(new LongRunningTask(30 * 1000, true), QUEUE);
+
+		QueueInfo info = manager.info(QUEUE);
+		QueueSettings settings = info.getSettings();
+		settings.setTaskTimeoutSeconds(15);
+		settings.setTaskInterruptTimeoutSeconds(5); // 10 seconds to finish of (it should last 3 seconds)
+
+		manager.set(QUEUE, settings); // 10 seconds for tasks to time out
+
+		manager.start(QUEUE);
+
+		Thread.sleep(20 * 1000); // wait 25 seconds ... task should be put in failed state at least once
+
+		// task should be in running state ...
+		List<QueueTask> list = queues.list(TaskState.running, QUEUE);
+		assertEquals(1, list.size());
+	}
+
+	@Test
 	public void multipleThreadsOnOneManager() throws InterruptedException {
 
 		String QUEUE = "multipleThreadsOnOneManager";
@@ -254,6 +361,8 @@ public class DefaultTaskQueueManagerTest {
 		QueueInfo info = manager.info(QUEUE);
 		QueueSettings settings = info.getSettings();
 		settings.setTaskTimeoutSeconds(10);
+		settings.setTaskInterruptTimeoutSeconds(0);
+
 		settings.setMaxThreads(5);
 		settings.setPurgeSuccessfulAfterMinutes(0);
 		settings.setPurgeFailedAfterMinutes(0);
@@ -327,6 +436,8 @@ public class DefaultTaskQueueManagerTest {
 		QueueInfo info = manager.info(QUEUE);
 		QueueSettings settings = info.getSettings();
 		settings.setTaskTimeoutSeconds(5);
+		settings.setTaskInterruptTimeoutSeconds(0);
+
 		settings.setMaxThreads(5);
 		settings.setPurgeFailedAfterMinutes(10);
 		settings.setPurgeSuccessfulAfterMinutes(10);
@@ -335,10 +446,10 @@ public class DefaultTaskQueueManagerTest {
 
 		for (int i = 0; i < 100; i++) {
 			if (i > 5 && i <= 10) {
-				service.add(new TimeoutTask(), QUEUE); // add 5 tasks that will time out
+				service.add(new TimeoutTask(true), QUEUE); // add 5 tasks that will time out
 			}
 
-			service.add(new LongRunningTask(500), QUEUE); // half a second for each task (100 * 500 = 50 000 / 5 = 10 000 - on 5 threads this should take 10s)
+			service.add(new LongRunningTask(500, true), QUEUE); // half a second for each task (100 * 500 = 50 000 / 5 = 10 000 - on 5 threads this should take 10s)
 			// + 5 * 500 = 2 500 for failing * 3 times retry = 7 500
 			// total at least: 20s
 		}

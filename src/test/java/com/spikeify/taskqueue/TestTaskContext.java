@@ -5,6 +5,7 @@ import java.util.Random;
 public class TestTaskContext implements TaskContext {
 
 	public final int count;
+
 	private boolean interrupt = false;
 
 	public TestTaskContext() {
@@ -19,7 +20,9 @@ public class TestTaskContext implements TaskContext {
 		return interrupt;
 	}
 
-	public void interruptTask() {
+	@Override
+	public void interrupt() {
+
 		interrupt = true;
 	}
 }

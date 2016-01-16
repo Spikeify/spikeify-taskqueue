@@ -11,4 +11,9 @@ public interface TaskContext {
 	 * @return true in case task should be interrupted, false otherwise
 	 */
 	boolean interrupted();
+
+	/**
+	 * Manual interrupt ... forced ... should set interrupted to true
+	 */
+	void interrupt();
 }

@@ -483,7 +483,7 @@ public class MultithreadTaskExecutorServiceTest {
 		Thread.sleep(1000);
 
 		// send interrupt signal to task
-		context.interruptTask();
+		context.interrupt();
 
 		thread.join();
 

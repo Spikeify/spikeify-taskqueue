@@ -28,12 +28,6 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 
 	public static final Logger log = Logger.getLogger(DefaultTaskExecutorService.class.getSimpleName());
 
-	/**
-	 * Number of seconds waiting for a task to shut down gracefully
-	 */
-	static final long MAX_SHUTDOWN_TIME = 60;
-
-
 	private final Spikeify sfy;
 	private final TaskQueueService queues;
 
@@ -152,7 +146,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 			startQueue(name, true);
 
 			// stop thread running if any ...
-			stopRunningThreads(name);
+			stopRunningThreads(name, settings);
 
 			// will start x-threads per queue and monitor them (every 10 seconds)
 			ScheduledThreadPoolExecutor executorService = new ScheduledThreadPoolExecutor(settings.getMaxThreads());
@@ -165,7 +159,10 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 				// each thread must have it's own executor service
 				TaskExecutorService executor = getExecutor(name);
 
-				executorService.scheduleAtFixedRate(new QueueScheduler(executor, settings.getTaskTimeoutSeconds(), context),
+				executorService.scheduleAtFixedRate(new QueueScheduler(executor,
+					settings.getTaskTimeoutSeconds(),
+					settings.getTaskInterruptTimeoutSeconds(),
+					context),
 													settings.getQueueMaxSleepTimeSeconds() + (100 * i), // add some delay so threads start with an offset
 													settings.getQueueMaxSleepTimeSeconds() * 1000,
 													TimeUnit.MILLISECONDS);
@@ -200,7 +197,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 			String name = queue.getName();
 			startQueue(name, false); // stop queue
 
-			stopRunningThreads(name); // remove threads from pool
+			stopRunningThreads(name, queue.getSettings()); // remove threads from pool
 			log.info("Stopped queue: " + name);
 		}
 	}
@@ -327,7 +324,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 		});
 	}
 
-	protected void stopRunningThreads(String queueName) throws InterruptedException {
+	protected void stopRunningThreads(String queueName, QueueSettings settings) throws InterruptedException {
 
 		ScheduledExecutorService running = threadPool.get(queueName);
 
@@ -335,7 +332,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 			// interrupt all running schedules if any
 			running.shutdown();
 
-			if (!running.awaitTermination(MAX_SHUTDOWN_TIME, TimeUnit.SECONDS)) {
+			if (!running.awaitTermination(settings.getTaskInterruptTimeoutSeconds(), TimeUnit.SECONDS)) {
 				log.warning("Executor did not terminate in the specified time.");
 
 				List<Runnable> droppedTasks = running.shutdownNow();

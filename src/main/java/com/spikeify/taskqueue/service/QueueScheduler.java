@@ -16,15 +16,23 @@ public class QueueScheduler implements Runnable {
 	private static final Logger log = Logger.getLogger(QueueScheduler.class.getSimpleName());
 
 	private final TaskExecutorService executor;
+
 	private final TaskContext context;
+
 	private final int taskTimeout;
 
-	public QueueScheduler(TaskExecutorService executorService, int timeoutInSeconds, TaskContext threadContext) {
+	private final int taskInterruptTimeout;
+
+	public QueueScheduler(TaskExecutorService executorService,
+	                      int timeoutInSeconds,
+	                      int interruptTimeoutSeconds,
+	                      TaskContext threadContext) {
 
 		Assert.notNull(executorService, "Missing queue executor service!");
 
 		executor = executorService;
 		taskTimeout = timeoutInSeconds;
+		taskInterruptTimeout = interruptTimeoutSeconds;
 		context = threadContext;
 	}
 
@@ -61,17 +69,28 @@ public class QueueScheduler implements Runnable {
 				service.shutdown();
 				if (!service.awaitTermination(taskTimeout, TimeUnit.SECONDS)) {
 
-					service.shutdownNow();
+					// send interrupt signal
+					context.interrupt();
 
-					result = worker.getResult();
+					// prolong for some time before giving up
+					if (!service.awaitTermination(taskInterruptTimeout, TimeUnit.SECONDS)) {
 
-					if (result == null) {
-						result = TaskResult.failed();
-						worker.reset();
+						// task is stuck ... kill it
+						service.shutdownNow();
+						result = worker.getResult();
+
+						if (result == null) {
+							result = TaskResult.failed();
+							worker.reset();
+						}
+					}
+					else {
+						// task finished successfully ... get the result
+						result = worker.getResult();
 					}
 				}
 				else {
-					// task finished succesfully ... get the result
+					// task finished successfully ... get the result
 					result = worker.getResult();
 				}
 			}
@@ -112,6 +131,7 @@ public class QueueScheduler implements Runnable {
 	private class WorkerThread implements Runnable {
 
 		private final TaskContext context;
+
 		private TaskResult result;
 
 		public WorkerThread(TaskContext context) {

@@ -31,6 +31,11 @@ public class QueueSettings {
 	protected int taskTimeoutSeconds = 10 * 60;
 
 	/**
+	 * Number of seconds to wait when interrupt is thrown before thread is killed
+	 */
+	protected int interruptTimeout = 60;
+
+	/**
 	 * Maximal number of threads for this queue on a single machine
 	 */
 	protected int maxThreads = 1;
@@ -83,6 +88,19 @@ public class QueueSettings {
 	@JsonProperty("timeout")
 	public int getTaskTimeoutSeconds() {
 		return taskTimeoutSeconds;
+	}
+
+	@JsonProperty("interrupt")
+	public void setTaskInterruptTimeoutSeconds(int seconds) {
+		Assert.isTrue(seconds >= 0, "Time out must be >= 0!");
+		Assert.isTrue(seconds <= (60 * 60), "Time out must be <= 3600!");
+
+		interruptTimeout = seconds;
+	}
+
+	@JsonProperty("interrupt")
+	public int getTaskInterruptTimeoutSeconds() {
+		return interruptTimeout;
 	}
 
 	@JsonProperty("threads")

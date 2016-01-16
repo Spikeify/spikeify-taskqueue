@@ -13,12 +13,21 @@ public class LongRunningTask implements Job {
 
 	private long duration;
 
+	private boolean ignore;
+
 	public LongRunningTask() {
 		duration = 60L * 1000L;
+		ignore = false;
 	}
 
 	public LongRunningTask(long executeInMilliseconds) {
 		duration = executeInMilliseconds;
+		ignore = false;
+	}
+
+	public LongRunningTask(long executeInMilliseconds, boolean ignoreInterrupt) {
+		duration = executeInMilliseconds;
+		ignore = ignoreInterrupt;
 	}
 
 	@JsonProperty("duration")
@@ -33,6 +42,18 @@ public class LongRunningTask implements Job {
 		this.duration = duration;
 	}
 
+	@JsonProperty("ignore")
+	public boolean getIgnore() {
+
+		return ignore;
+	}
+
+	@JsonProperty("ignore")
+	public void setIgnore(boolean ignore) {
+
+		this.ignore = ignore;
+	}
+
 	@Override
 	public TaskResult execute(TaskContext context) {
 
@@ -44,7 +65,7 @@ public class LongRunningTask implements Job {
 			age = System.currentTimeMillis() - startTime;
 
 			try {
-				if (context != null && context.interrupted()) {
+				if (context != null && !ignore && context.interrupted()) {
 
 					log.info("Task is being interrupted ... sending kill signal!");
 					Thread.sleep(3000); // wait 3 seconds ... simulate that interrupt takes time
@@ -54,6 +75,7 @@ public class LongRunningTask implements Job {
 				Thread.sleep(100); // wait 1/10 of a second
 			}
 			catch (InterruptedException e) {
+
 				return TaskResult.interrupted(); // gracefully exit
 			}
 		}

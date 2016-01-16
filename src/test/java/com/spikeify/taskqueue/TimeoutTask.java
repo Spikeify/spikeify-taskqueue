@@ -1,10 +1,34 @@
 package com.spikeify.taskqueue;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.logging.Logger;
 
 public class TimeoutTask implements Job {
 
 	public static final Logger log = Logger.getLogger(TimeoutTask.class.getSimpleName());
+
+	public TimeoutTask() {
+		ignore = false;
+	}
+
+	public TimeoutTask(boolean ignoreInterrupt) {
+		ignore = ignoreInterrupt;
+	}
+
+	private boolean ignore;
+
+	@JsonProperty("ignore")
+	public boolean getIgnore() {
+
+		return ignore;
+	}
+
+	@JsonProperty("ignore")
+	public void setIgnore(boolean ignore) {
+
+		this.ignore = ignore;
+	}
 
 	@Override
 	public TaskResult execute(TaskContext context) {
@@ -18,7 +42,7 @@ public class TimeoutTask implements Job {
 			age = System.currentTimeMillis() - startTime;
 
 			try {
-				if (context != null && context.interrupted()) {
+				if (context != null && !ignore && context.interrupted()) {
 
 					return TaskResult.interrupted(); // gracefully exit
 				}
