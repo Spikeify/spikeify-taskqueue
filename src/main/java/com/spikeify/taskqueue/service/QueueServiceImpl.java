@@ -29,7 +29,8 @@ public class QueueServiceImpl implements QueueService {
 
 	/**
 	 * All default start up
-	 * @param spikeify database connection
+	 *
+	 * @param spikeify         database connection
 	 * @param queuesToRegister list of queue names
 	 */
 	public QueueServiceImpl(Spikeify spikeify, String... queuesToRegister) {
@@ -47,8 +48,8 @@ public class QueueServiceImpl implements QueueService {
 	/**
 	 * Register queues with default settings
 	 *
-	 * @param queueManager queue task manager to be used
-	 * @param queueService queue task service to be used
+	 * @param queueManager     queue task manager to be used
+	 * @param queueService     queue task service to be used
 	 * @param queuesToRegister list of queues this instance is working with
 	 */
 	public QueueServiceImpl(TaskQueueManager queueManager,
@@ -61,8 +62,9 @@ public class QueueServiceImpl implements QueueService {
 	/**
 	 * Start queues with given settings
 	 *
-	 * @param queueManager queue task manager to be used
-	 * @param queueService queue task service to be used
+	 * @param queueManager     queue task manager to be used
+	 * @param queueService     queue task service to be used
+	 * @param settings         setting
 	 * @param queuesToRegister list of queues this instance is working with
 	 */
 	public QueueServiceImpl(TaskQueueManager queueManager,
@@ -101,7 +103,7 @@ public class QueueServiceImpl implements QueueService {
 			queues = queueNames;
 		}
 
-		for (String queue: queues) {
+		for (String queue : queues) {
 			manager.set(queue, settings);
 			try {
 				// queue will be restarted in order to settings take affect
