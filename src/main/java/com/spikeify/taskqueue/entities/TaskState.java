@@ -21,7 +21,7 @@ public enum TaskState {
 		transitionMatrix.put(queued, new TaskState[] {running, purge});     	// execute
 		transitionMatrix.put(running, new TaskState[] {finished, failed, interrupted});    // success, interruption or failure
 		transitionMatrix.put(failed, new TaskState[] {running, purge});     	// retry or delete
-		transitionMatrix.put(interrupted, new TaskState[] {running, purge});   	// retry or delete
+		transitionMatrix.put(interrupted, new TaskState[] {running, failed, purge});   	// retry or delete
 		transitionMatrix.put(finished, new TaskState[] {purge});            	// delete
 	}
 

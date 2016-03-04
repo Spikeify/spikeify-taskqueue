@@ -285,6 +285,13 @@ public class QueueTask {
 			executionTime = endTime - createTime;
 		}
 
+		if (TaskState.interrupted.equals(newState)) {
+
+			if (runCount >= MAX_RETRIES) {
+				newState = TaskState.failed;
+			}
+		}
+
 		// set state
 		state = newState;
 

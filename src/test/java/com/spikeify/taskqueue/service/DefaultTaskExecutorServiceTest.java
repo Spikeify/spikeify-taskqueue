@@ -2,11 +2,15 @@ package com.spikeify.taskqueue.service;
 
 import com.spikeify.Spikeify;
 import com.spikeify.taskqueue.*;
+import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskResultState;
+import com.spikeify.taskqueue.entities.TaskState;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -107,6 +111,10 @@ public class DefaultTaskExecutorServiceTest {
 
 		result = service.execute(null);
 		assertEquals(TaskResultState.interrupted, result.getState());
+
+		// check task .. should be failed in database
+		List<QueueTask> list = queueService.list(TaskState.failed, QUEUE);
+		assertEquals(1, list.size());
 
 		// no task should be present 3times retried tasks are locked for execution
 		result = service.execute(null);
