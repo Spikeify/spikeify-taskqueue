@@ -251,18 +251,18 @@ public class DefaultTaskQueueManagerTest {
 		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
 		manager.register(QUEUE, false);
 
-		service.add(new TimeoutTask(), QUEUE);
+		service.add(new LongRunningTask(10 * 1000), QUEUE);
 
 		QueueInfo info = manager.info(QUEUE);
 		QueueSettings settings = info.getSettings();
-		settings.setTaskTimeoutSeconds(3);
-		settings.setTaskInterruptTimeoutSeconds(0); // no gracefull period ... taks takes 3 seconds to interrupt itself
+		settings.setTaskTimeoutSeconds(2);
+		settings.setTaskInterruptTimeoutSeconds(0); // no graceful period ... task takes 3 seconds to interrupt itself so we will kill it
 
 		manager.set(QUEUE, settings); // 9 seconds for tasks to time out 3 times
 
 		manager.start(QUEUE);
 
-		Thread.sleep(15 * 1000); // wait 15 seconds ... task should be put in failed state at least once
+		Thread.sleep(20  * 1000); // wait 15 seconds ... task should be put in failed state at least once
 
 		// task should be in interrupted state ...
 		List<QueueTask> list = queues.list(TaskState.interrupted, QUEUE);
@@ -302,7 +302,7 @@ public class DefaultTaskQueueManagerTest {
 
 		manager.start(QUEUE);
 
-		Thread.sleep(10 * 1000); // wait 20 seconds ... task should be put in failed state at least once
+		Thread.sleep(20 * 1000); // wait 10 seconds ... task should be put in interrupted state
 
 		// task should be in interrupted state ...
 		List<QueueTask> list = queues.list(TaskState.interrupted, QUEUE);
