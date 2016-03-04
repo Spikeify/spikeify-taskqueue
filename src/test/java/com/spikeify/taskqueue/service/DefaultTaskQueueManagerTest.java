@@ -146,18 +146,18 @@ public class DefaultTaskQueueManagerTest {
 		// let's stop
 		manager.stop(QUEUE);
 
-		// 15 are left in the queue
+		// 15 are left in the queue (they were interrupted)
 		List<QueueTask> list = queues.list(TaskState.queued, QUEUE);
 		assertTrue(list.size() >= 15);
 		int count = list.size();
 
 		// 1 was interrupted
 		list = queues.list(TaskState.interrupted, QUEUE);
-		assertEquals(1, list.size());
+		assertEquals(0, list.size());
 
 		// 4 manage to finish
 		list = queues.list(TaskState.finished, QUEUE);
-		assertEquals(20 - count - 1, list.size());
+		assertEquals(20 - count, list.size());
 
 		// none should fail
 		list = queues.list(TaskState.failed, QUEUE);

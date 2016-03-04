@@ -57,7 +57,11 @@ public class QueueScheduler implements Runnable {
 			// while there are tasks to be executed ... continue with execution
 
 			ExecutorService service = Executors.newSingleThreadExecutor();
-			context.reset();
+
+			if (context.interrupted()) {
+				log.info("Execution was interrupted from outside!");
+				break;
+			}
 
 			WorkerThread worker = new WorkerThread(context);
 			service.execute(worker);
@@ -117,6 +121,8 @@ public class QueueScheduler implements Runnable {
 			else {
 				log.info("Last task result: " + result);
 			}
+
+			context.reset();
 		}
 		while (result != null);
 
