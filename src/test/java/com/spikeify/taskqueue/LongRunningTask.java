@@ -1,15 +1,16 @@
 package com.spikeify.taskqueue;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.logging.Logger;
 
 /**
  * Task which executes for at least a minute
  */
 public class LongRunningTask implements Job {
 
-	public static final Logger log = Logger.getLogger(LongRunningTask.class.getSimpleName());
+	public static final Logger log = LoggerFactory.getLogger(LongRunningTask.class.getSimpleName());
 
 	private long duration;
 

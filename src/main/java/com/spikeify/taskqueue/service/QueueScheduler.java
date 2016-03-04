@@ -4,16 +4,16 @@ import com.spikeify.taskqueue.TaskContext;
 import com.spikeify.taskqueue.TaskResult;
 import com.spikeify.taskqueue.entities.TaskResultState;
 import com.spikeify.taskqueue.utils.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class QueueScheduler implements Runnable {
 
-	private static final Logger log = Logger.getLogger(QueueScheduler.class.getSimpleName());
+	private static final Logger log = LoggerFactory.getLogger(QueueScheduler.class);
 
 	private final TaskExecutorService executor;
 
@@ -46,7 +46,7 @@ public class QueueScheduler implements Runnable {
 
 		TaskContext context = getContext();
 
-		log.fine("Starting task execution ...");
+		log.debug("Starting task execution ...");
 
 		int successCount = 0;
 		int allCount = 0;
@@ -81,7 +81,7 @@ public class QueueScheduler implements Runnable {
 					if (!service.awaitTermination(taskInterruptTimeout, TimeUnit.SECONDS)) {
 
 						// task is stuck ... kill it
-						log.warning("Failed to gracefully interrupt task, killing task instead!");
+						log.warn("Failed to gracefully interrupt task, killing task instead!");
 
 						service.shutdownNow();
 						result = worker.getResult();
@@ -102,7 +102,7 @@ public class QueueScheduler implements Runnable {
 				}
 			}
 			catch (InterruptedException e) {
-				log.log(Level.SEVERE, "Task has been timed out ...");
+				log.error("Task has been timed out ...");
 				result = TaskResult.failed();
 			}
 
@@ -126,8 +126,7 @@ public class QueueScheduler implements Runnable {
 		}
 		while (result != null);
 
-		log.fine("No new tasks found, stopping after: " + successCount + "/" + allCount + " execution(s).");
-
+		log.debug("No new tasks found, stopping after: " + successCount + "/" + allCount + " execution(s).");
 	}
 
 	private TaskContext getContext() {

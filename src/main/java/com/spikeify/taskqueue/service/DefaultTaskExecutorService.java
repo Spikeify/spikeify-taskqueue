@@ -8,9 +8,8 @@ import com.spikeify.taskqueue.entities.TaskResultState;
 import com.spikeify.taskqueue.entities.TaskState;
 import com.spikeify.taskqueue.utils.Assert;
 import com.spikeify.taskqueue.utils.StringUtils;
-
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Each executor executes only one job at most
@@ -18,7 +17,7 @@ import java.util.logging.Logger;
  */
 public class DefaultTaskExecutorService implements TaskExecutorService {
 
-	public static final Logger log = Logger.getLogger(DefaultTaskExecutorService.class.getSimpleName());
+	public static final Logger log = LoggerFactory.getLogger(DefaultTaskExecutorService.class);
 
 	/**
 	 * times a job is retrieved and tried to be started when given from a queue ... no job is executed
@@ -95,17 +94,17 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 							break;
 					}
 
-					log.fine("Task resulted in: " + result);
+					log.debug("Task resulted in: " + result);
 
 					// 4. end execution
 					return result;
 				}
 				catch (Exception e) {
-					log.log(Level.SEVERE, "Failed to execute job: " + currentJob + ", queue id:" + next.getId(), e);
+					log.error("Failed to execute job: " + currentJob + ", queue id:" + next.getId(), e);
 
 					next = queue.transition(next, TaskState.failed);
 					if (next == null || !TaskState.failed.equals(next.getState())) {
-						log.log(Level.SEVERE, "Failed to transition queued job to failed state: " + next + "!", e);
+						log.error("Failed to transition queued job to failed state: " + next + "!", e);
 					}
 
 					return new TaskResult(TaskResultState.failed);
@@ -123,7 +122,7 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 						Thread.sleep((long) (10.0D + Math.random() * 10.0D * (double) retries));
 					}
 					catch (InterruptedException e) {
-						log.log(Level.SEVERE, "Thread.sleep() InterruptedException: ", e);
+						log.error("Thread.sleep() InterruptedException: ", e);
 					}
 				}
 			}

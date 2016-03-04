@@ -12,14 +12,14 @@ import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskState;
 import com.spikeify.taskqueue.entities.TaskStatistics;
 import com.spikeify.taskqueue.utils.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class DefaultTaskQueueService implements TaskQueueService {
 
-	private static final Logger log = Logger.getLogger(DefaultTaskQueueService.class.getSimpleName());
+	private static final Logger log = LoggerFactory.getLogger(DefaultTaskQueueService.class.getSimpleName());
 
 	/**
 	 * default queue name if no queue name was given
@@ -174,12 +174,12 @@ public class DefaultTaskQueueService implements TaskQueueService {
 		}
 		catch (ConcurrentModificationException | AerospikeException e) {
 			// job modified by other thread ... transition failed
-			log.fine("Could not transition job: " + task + " to: " + newState + ", thread collision!");
+			log.debug("Could not transition job: " + task + " to: " + newState + ", thread collision!");
 			return null;
 		}
 		catch (TaskQueueError e) {
 
-			log.log(Level.SEVERE, "Transition failed, thread collision.", e);
+			log.error("Transition failed, thread collision.", e);
 			return null;
 		}
 	}
@@ -222,7 +222,7 @@ public class DefaultTaskQueueService implements TaskQueueService {
 		}
 		catch (Exception e) {
 			// exception here should not stop working the whole queue
-			log.log(Level.SEVERE, "Failed to count tasks!", e);
+			log.error("Failed to count tasks!", e);
 		}
 	}
 

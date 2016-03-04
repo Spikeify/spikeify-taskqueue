@@ -1,12 +1,12 @@
 package com.spikeify.taskqueue;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TimeoutTask implements Job {
 
-	public static final Logger log = Logger.getLogger(TimeoutTask.class.getSimpleName());
+	public static final Logger log = LoggerFactory.getLogger(TimeoutTask.class);
 
 	public TimeoutTask() {
 		ignore = false;

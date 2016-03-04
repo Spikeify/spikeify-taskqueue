@@ -4,15 +4,16 @@ import com.spikeify.taskqueue.entities.QueueSettings;
 import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskState;
 import com.spikeify.taskqueue.entities.TaskStatistics;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 public class QueuePurger implements Runnable {
 
-	private static final Logger log = Logger.getLogger(QueuePurger.class.getSimpleName());
+	private static final Logger log = LoggerFactory.getLogger(QueuePurger.class);
 	private static final int ADDITIONAL_SLACK = 10; // add 10 seconds ... so purge and time-out in Scheduler can't clash
 
 	private final TaskQueueService queues;

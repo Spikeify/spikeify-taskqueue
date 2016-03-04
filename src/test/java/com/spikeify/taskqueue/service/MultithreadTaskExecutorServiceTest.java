@@ -9,17 +9,18 @@ import com.spikeify.taskqueue.entities.TaskState;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Logger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class MultithreadTaskExecutorServiceTest {
 
-	Logger log = Logger.getLogger(MultithreadTaskExecutorServiceTest.class.getSimpleName());
+	Logger log = LoggerFactory.getLogger(MultithreadTaskExecutorServiceTest.class);
 
 	private Spikeify spikeify;
 

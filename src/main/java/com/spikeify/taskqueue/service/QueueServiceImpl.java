@@ -6,17 +6,17 @@ import com.spikeify.taskqueue.entities.QueueInfo;
 import com.spikeify.taskqueue.entities.QueueSettings;
 import com.spikeify.taskqueue.entities.QueueTask;
 import com.spikeify.taskqueue.entities.TaskState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Simple wrapper to utilize one or more queues
  */
 public class QueueServiceImpl implements QueueService {
 
-	final Logger log = Logger.getLogger(QueueServiceImpl.class.getName());
+	final Logger log = LoggerFactory.getLogger(QueueServiceImpl.class.getName());
 
 	private final TaskQueueService queues;
 
@@ -110,7 +110,7 @@ public class QueueServiceImpl implements QueueService {
 				manager.start(queue);
 			}
 			catch (InterruptedException e) {
-				log.log(Level.SEVERE, "Failed to restart queue when altering settings!", e);
+				log.error("Failed to restart queue when altering settings!", e);
 			}
 		}
 	}
@@ -150,7 +150,7 @@ public class QueueServiceImpl implements QueueService {
 				}
 			}
 			catch (InterruptedException e) {
-				log.log(Level.SEVERE, "Failed to start queue!", e);
+				log.error("Failed to start queue!", e);
 			}
 		}
 	}
@@ -162,7 +162,7 @@ public class QueueServiceImpl implements QueueService {
 			manager.start(queueName); // if not started then simple start ... otherwise restart ...
 		}
 		catch (InterruptedException e) {
-			log.log(Level.SEVERE, "Failed to restart queue!", e);
+			log.error("Failed to restart queue!", e);
 		}
 	}
 
@@ -181,7 +181,7 @@ public class QueueServiceImpl implements QueueService {
 			}
 		}
 		catch (InterruptedException e) {
-			log.log(Level.SEVERE, "Failed to stop queue!", e);
+			log.error("Failed to stop queue!", e);
 		}
 	}
 
@@ -195,7 +195,7 @@ public class QueueServiceImpl implements QueueService {
 			}
 		}
 		catch (InterruptedException e) {
-			log.log(Level.SEVERE, "Failed to check queue!", e);
+			log.error("Failed to check queue!", e);
 		}
 	}
 }

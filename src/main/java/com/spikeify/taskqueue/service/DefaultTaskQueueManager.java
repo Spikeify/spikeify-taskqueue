@@ -9,6 +9,8 @@ import com.spikeify.taskqueue.entities.QueueInfoUpdater;
 import com.spikeify.taskqueue.entities.QueueSettings;
 import com.spikeify.taskqueue.entities.TaskState;
 import com.spikeify.taskqueue.utils.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,8 +19,6 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Should be used as a singleton ...
@@ -26,7 +26,7 @@ import java.util.logging.Logger;
  */
 public class DefaultTaskQueueManager implements TaskQueueManager {
 
-	public static final Logger log = Logger.getLogger(DefaultTaskExecutorService.class.getSimpleName());
+	public static final Logger log = LoggerFactory.getLogger(DefaultTaskExecutorService.class.getSimpleName());
 
 	private final Spikeify sfy;
 	private final TaskQueueService queues;
@@ -142,7 +142,7 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 				sfy.delete(found).now();
 			}
 			catch (InterruptedException e) {
-				log.log(Level.SEVERE, "Failed to stop queue: " + queueName + ", can't unregister!", e);
+				log.error("Failed to stop queue: " + queueName + ", can't unregister!", e);
 			}
 		}
 	}
@@ -349,10 +349,10 @@ public class DefaultTaskQueueManager implements TaskQueueManager {
 			running.shutdown();
 
 			if (!running.awaitTermination(settings.getTaskInterruptTimeoutSeconds(), TimeUnit.SECONDS)) {
-				log.warning("Executor did not terminate in the specified time.");
+				log.warn("Executor did not terminate in the specified time.");
 
 				List<Runnable> droppedTasks = running.shutdownNow();
-				log.warning("Executor was abruptly shut down. " + droppedTasks.size() + " tasks will not be executed.");
+				log.warn("Executor was abruptly shut down. " + droppedTasks.size() + " tasks will not be executed.");
 			}
 		}
 
