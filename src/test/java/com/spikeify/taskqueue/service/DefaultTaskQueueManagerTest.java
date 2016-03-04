@@ -262,7 +262,7 @@ public class DefaultTaskQueueManagerTest {
 
 		manager.start(QUEUE);
 
-		Thread.sleep(20  * 1000); // wait 15 seconds ... task should be put in failed state at least once
+		Thread.sleep(15  * 1000); // wait 15 seconds ... task should be put in failed state at least once
 
 		// task should be in interrupted state ...
 		List<QueueTask> list = queues.list(TaskState.interrupted, QUEUE);
@@ -273,14 +273,14 @@ public class DefaultTaskQueueManagerTest {
 		purger.run();
 
 		// task will stay interrupted
-		list = queues.list(TaskState.interrupted, QUEUE);
-		assertEquals(1, list.size());
+		list = queues.list(TaskState.failed, QUEUE);
+		assertEquals(0, list.size());
 
 		list = queues.list(TaskState.running, QUEUE);
 		assertEquals(0, list.size());
 
-		list = queues.list(TaskState.failed, QUEUE);
-		assertEquals(0, list.size());
+		list = queues.list(TaskState.interrupted, QUEUE);
+		assertEquals(1, list.size());
 	}
 
 	@Test
@@ -305,7 +305,7 @@ public class DefaultTaskQueueManagerTest {
 		Thread.sleep(20 * 1000); // wait 10 seconds ... task should be put in interrupted state
 
 		// task should be in interrupted state ...
-		List<QueueTask> list = queues.list(TaskState.interrupted, QUEUE);
+		List<QueueTask> list = queues.list(TaskState.failed, QUEUE); // 3times interrupted is failed
 		assertEquals(1, list.size());
 
 		// let's purge
@@ -313,13 +313,13 @@ public class DefaultTaskQueueManagerTest {
 		purger.run();
 
 		// task will stay interrupted
-		list = queues.list(TaskState.interrupted, QUEUE);
+		list = queues.list(TaskState.failed, QUEUE);
 		assertEquals(1, list.size());
 
 		list = queues.list(TaskState.running, QUEUE);
 		assertEquals(0, list.size());
 
-		list = queues.list(TaskState.failed, QUEUE);
+		list = queues.list(TaskState.interrupted, QUEUE);
 		assertEquals(0, list.size());
 	}
 
