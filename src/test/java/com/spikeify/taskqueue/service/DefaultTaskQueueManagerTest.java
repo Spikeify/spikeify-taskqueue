@@ -262,7 +262,7 @@ public class DefaultTaskQueueManagerTest {
 
 		manager.start(QUEUE);
 
-		Thread.sleep(20  * 1000); // wait 10 seconds ... task should be run 3 times and at the end put into failed state
+		Thread.sleep(30  * 1000); // wait 10 seconds ... task should be run 3 times and at the end put into failed state
 
 		// task should be in interrupted state ...
 		List<QueueTask> list = queues.list(TaskState.failed, QUEUE);
