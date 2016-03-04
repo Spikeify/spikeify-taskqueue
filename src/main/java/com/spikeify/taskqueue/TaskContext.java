@@ -16,4 +16,9 @@ public interface TaskContext {
 	 * Manual interrupt ... forced ... should set interrupted to true
 	 */
 	void interrupt();
+
+	/**
+	 * Set everything to the beginning (reset interrupt flag)
+	 */
+	void reset();
 }

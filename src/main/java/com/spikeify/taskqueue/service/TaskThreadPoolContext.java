@@ -11,7 +11,7 @@ public class TaskThreadPoolContext implements TaskContext {
 
 	private final ScheduledThreadPoolExecutor executor;
 
-	private boolean interrupted;
+	private boolean timeOut;
 
 	public TaskThreadPoolContext(ScheduledThreadPoolExecutor executorService) {
 
@@ -21,11 +21,15 @@ public class TaskThreadPoolContext implements TaskContext {
 	@Override
 	public boolean interrupted() {
 
-		return interrupted || executor.isTerminating();
+		return timeOut || executor.isTerminating();
 	}
 
 	@Override
 	public void interrupt() {
-		interrupted = true;
+		timeOut = true;
+	}
+
+	public void reset() {
+		timeOut = false;
 	}
 }

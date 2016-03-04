@@ -25,4 +25,10 @@ public class TestTaskContext implements TaskContext {
 
 		interrupt = true;
 	}
+
+	@Override
+	public void reset() {
+
+		interrupt = false;
+	}
 }

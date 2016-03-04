@@ -58,6 +58,8 @@ public class QueueScheduler implements Runnable {
 			// while there are tasks to be executed ... continue with execution
 
 			ExecutorService service = Executors.newSingleThreadExecutor();
+			context.reset();
+
 			WorkerThread worker = new WorkerThread(context);
 			service.execute(worker);
 
@@ -76,12 +78,15 @@ public class QueueScheduler implements Runnable {
 					if (!service.awaitTermination(taskInterruptTimeout, TimeUnit.SECONDS)) {
 
 						// task is stuck ... kill it
+						log.warning("Failed to gracefully interrupt task, killing task instead!");
+
 						service.shutdownNow();
 						result = worker.getResult();
 
 						if (result == null) {
 							result = TaskResult.failed();
 							worker.reset();
+							interrupted = true;
 						}
 					}
 					else {
@@ -103,7 +108,6 @@ public class QueueScheduler implements Runnable {
 
 				if (TaskResultState.interrupted.equals(result.getState())) {
 					interrupted = true;
-					break;
 				}
 
 				if (TaskResultState.ok.equals(result.getState())) {
@@ -113,7 +117,9 @@ public class QueueScheduler implements Runnable {
 				allCount++; // count tasks executed
 			}
 		}
-		while (result != null);
+		while (result != null && !interrupted);
+
+		log.info("Task result: " + result);
 
 		if (interrupted) {
 			log.fine("Interrupted after: " + successCount + "/" + allCount + " execution(s).");
@@ -130,7 +136,7 @@ public class QueueScheduler implements Runnable {
 
 	private class WorkerThread implements Runnable {
 
-		private final TaskContext context;
+		private TaskContext context;
 
 		private TaskResult result;
 

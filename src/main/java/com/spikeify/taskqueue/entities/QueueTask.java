@@ -308,7 +308,7 @@ public class QueueTask {
 		return TaskState.running.equals(state) ||
 			   TaskState.finished.equals(state) ||
 			   TaskState.purge.equals(state) ||
-			   (TaskState.interrupted.equals(state) && runCount >= MAX_RETRIES) && // max runs when interrupted
+			   (TaskState.interrupted.equals(state) && runCount >= MAX_RETRIES) || // max runs when interrupted
 			   (TaskState.failed.equals(state) && runCount >= MAX_RETRIES);  // max runs when failed
 	}
 

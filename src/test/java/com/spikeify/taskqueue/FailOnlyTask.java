@@ -5,8 +5,6 @@ package com.spikeify.taskqueue;
  */
 public class FailOnlyTask implements Job {
 
-	public FailOnlyTask() {}
-
 	@Override
 	public TaskResult execute(TaskContext context) {
 

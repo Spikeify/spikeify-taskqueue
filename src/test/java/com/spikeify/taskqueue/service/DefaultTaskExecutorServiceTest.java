@@ -84,4 +84,32 @@ public class DefaultTaskExecutorServiceTest {
 		result = service.execute(null);
 		assertNull(result);
 	}
+
+	@Test
+	public void testMaxRetriesOnInterruptedTask() {
+
+		String QUEUE = "testMaxRetriesOnFailingTask";
+
+		TaskQueueService queueService = new DefaultTaskQueueService(spikeify);
+		TaskQueueService spiedQueueService = Mockito.spy(queueService);
+
+		TaskExecutorService service = new DefaultTaskExecutorService(spiedQueueService, QUEUE);
+
+		Job job = new InterruptOnlyTask();
+		queueService.add(job, QUEUE);
+
+		// 1st one executes the job
+		TaskResult result = service.execute(null);
+		assertEquals(TaskResultState.interrupted, result.getState());
+
+		result = service.execute(null);
+		assertEquals(TaskResultState.interrupted, result.getState());
+
+		result = service.execute(null);
+		assertEquals(TaskResultState.interrupted, result.getState());
+
+		// no task should be present 3times retried tasks are locked for execution
+		result = service.execute(null);
+		assertNull(result);
+	}
 }
