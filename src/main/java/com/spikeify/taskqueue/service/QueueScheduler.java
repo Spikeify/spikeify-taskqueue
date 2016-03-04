@@ -59,7 +59,7 @@ public class QueueScheduler implements Runnable {
 			ExecutorService service = Executors.newSingleThreadExecutor();
 
 			if (context.interrupted()) {
-				log.info("Execution was interrupted from outside!");
+				log.warn("Execution was interrupted from outside!");
 				break;
 			}
 
