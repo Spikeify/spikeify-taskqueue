@@ -256,16 +256,16 @@ public class DefaultTaskQueueManagerTest {
 		QueueInfo info = manager.info(QUEUE);
 		QueueSettings settings = info.getSettings();
 		settings.setTaskTimeoutSeconds(2);
-		settings.setTaskInterruptTimeoutSeconds(0); // no graceful period ... task takes 3 seconds to interrupt itself so we will kill it
+		settings.setTaskInterruptTimeoutSeconds(1); // no graceful period ... task takes 3 seconds to interrupt itself so we will kill it
 
-		manager.set(QUEUE, settings); // 9 seconds for tasks to time out 3 times
+		manager.set(QUEUE, settings); //
 
 		manager.start(QUEUE);
 
-		Thread.sleep(15  * 1000); // wait 15 seconds ... task should be put in failed state at least once
+		Thread.sleep(20  * 1000); // wait 10 seconds ... task should be run 3 times and at the end put into failed state
 
 		// task should be in interrupted state ...
-		List<QueueTask> list = queues.list(TaskState.interrupted, QUEUE);
+		List<QueueTask> list = queues.list(TaskState.failed, QUEUE);
 		assertEquals(1, list.size());
 
 		// let's purge
@@ -274,13 +274,13 @@ public class DefaultTaskQueueManagerTest {
 
 		// task will stay interrupted
 		list = queues.list(TaskState.failed, QUEUE);
-		assertEquals(0, list.size());
+		assertEquals(1, list.size());
 
 		list = queues.list(TaskState.running, QUEUE);
 		assertEquals(0, list.size());
 
 		list = queues.list(TaskState.interrupted, QUEUE);
-		assertEquals(1, list.size());
+		assertEquals(0, list.size());
 	}
 
 	@Test
