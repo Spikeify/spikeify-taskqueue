@@ -116,10 +116,10 @@ public class QueueScheduler implements Runnable {
 			}
 
 			if (result == null) {
-				log.info("No new tasks found ... exiting");
+				log.debug("No new tasks found ... exiting");
 			}
 			else {
-				log.info("Last task result: " + result);
+				log.debug("Last task result: " + result);
 			}
 
 			context.reset();
