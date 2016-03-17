@@ -12,23 +12,54 @@ public class LongRunningTask implements Job {
 
 	public static final Logger log = LoggerFactory.getLogger(LongRunningTask.class.getSimpleName());
 
+	private long wait;
+
 	private long duration;
 
 	private boolean ignore;
 
-	public LongRunningTask() {
+	private String name;
+
+	private LongRunningTask() {}
+
+	public LongRunningTask(String name) {
 		duration = 60L * 1000L;
 		ignore = false;
+		wait = 3000;
+		this.name = name;
 	}
 
-	public LongRunningTask(long executeInMilliseconds) {
+	public LongRunningTask(String name, long executeInMilliseconds) {
+		this.name = name;
 		duration = executeInMilliseconds;
+		ignore = false;
+		wait = 3000;
+	}
+
+	public LongRunningTask(String name, long executeInMilliseconds, boolean ignoreInterrupt) {
+		this.name = name;
+		duration = executeInMilliseconds;
+		ignore = ignoreInterrupt;
+		wait = 3000;
+	}
+
+	public LongRunningTask(String name, long executeInMilliseconds, long waitUntilInterrupt) {
+		this.name = name;
+		duration = executeInMilliseconds;
+		wait = waitUntilInterrupt;
 		ignore = false;
 	}
 
-	public LongRunningTask(long executeInMilliseconds, boolean ignoreInterrupt) {
-		duration = executeInMilliseconds;
-		ignore = ignoreInterrupt;
+	@JsonProperty("name")
+	public String getName() {
+
+		return name;
+	}
+
+	@JsonProperty("name")
+	public void setName(String value) {
+
+		name = value;
 	}
 
 	@JsonProperty("duration")
@@ -55,6 +86,19 @@ public class LongRunningTask implements Job {
 		this.ignore = ignore;
 	}
 
+	@JsonProperty("wait")
+	public long getWait() {
+
+		return wait;
+	}
+
+	@JsonProperty("wait")
+	public void setWait(long time) {
+
+		wait = time;
+	}
+
+
 	@Override
 	public TaskResult execute(TaskContext context) {
 
@@ -68,8 +112,9 @@ public class LongRunningTask implements Job {
 			try {
 				if (context != null && !ignore && context.interrupted()) {
 
-					log.info("Task is being interrupted ... sending kill signal!");
-					Thread.sleep(3000); // wait 3 seconds ... simulate that interrupt takes time
+					log.info("Task " + name + " is being interrupted ... sensing interrupt from context!");
+					Thread.sleep(wait); // wait 3 seconds ... simulate that interrupt takes time
+					log.info("Task " + name + " gracefully ending his execution.");
 					return TaskResult.interrupted(); // gracefully exit
 				}
 
@@ -77,12 +122,13 @@ public class LongRunningTask implements Job {
 			}
 			catch (InterruptedException e) {
 
+				log.info(name + " being interrupted / kill signal");
 				return TaskResult.interrupted(); // gracefully exit
 			}
 		}
 		while (age <= duration);
 
-		log.info("Long run finished successfully!");
+		log.info(name + " run finished successfully!");
 		return TaskResult.ok();
 	}
 }

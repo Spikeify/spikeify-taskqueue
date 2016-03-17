@@ -27,8 +27,7 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 	private final String queueName;
 	private final TaskQueueService queue;
 
-	// current running job
-	private Job currentJob;
+	private boolean running;
 
 	public DefaultTaskExecutorService(TaskQueueService queueService,
 									  String queueName) {
@@ -52,9 +51,7 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 		int retries = 0;
 
 		do {
-			if (currentJob != null) {
-				return null; // already executing ... wait
-			}
+			running = true;
 
 			// 1. get next job to be executed (in running state)
 			QueueTask next = queue.next(queueName);
@@ -70,6 +67,8 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 
 			// was successfully put in running state
 			if (started) {
+
+				Job currentJob = null;
 
 				try {
 					// get job
@@ -109,9 +108,6 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 
 					return new TaskResult(TaskResultState.failed);
 				}
-				finally {
-					currentJob = null;
-				}
 			}
 			else {
 				// job already in running state (other thread took over ... let's retry)
@@ -129,6 +125,8 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 		}
 		while (retries < MAX_START_RETRIES);
 
+		running = false;
+
 		// nothing to do ... queue is empty
 		return null;
 	}
@@ -136,12 +134,6 @@ public class DefaultTaskExecutorService implements TaskExecutorService {
 	@Override
 	public boolean isRunning() {
 
-		return currentJob != null;
-	}
-
-	@Override
-	public void reset() {
-
-		currentJob = null;
+		return running;
 	}
 }

@@ -16,6 +16,7 @@ import com.spikeify.taskqueue.utils.JsonUtils;
 public class QueueTask {
 
 	private static final String LOCKED = "LOCKED";
+
 	private static final String OPEN = "OPEN";
 
 	private static final int MAX_RETRIES = 3;
@@ -108,6 +109,9 @@ public class QueueTask {
 	 */
 	@Indexed
 	protected String lockFilter;
+
+
+	private String lock;
 
 	/**
 	 * For Spikeify only
@@ -259,8 +263,9 @@ public class QueueTask {
 	 * Change the tasks state when started, failed of finished
 	 *
 	 * @param newState to put task into. If transition is not possible set is ignored!
+	 * @param lockId   randomly generated string
 	 */
-	public void setState(TaskState newState) {
+	public void setState(TaskState newState, String lockId) {
 
 		if (!state.canTransition(newState)) {
 			throw new TaskQueueError("Can't transition from: " + state + " to: " + newState);
@@ -268,6 +273,9 @@ public class QueueTask {
 
 		// log last update
 		updateTime = System.currentTimeMillis();
+
+		// randomly generated lock ... if after update it is the same than same thread was generating this
+		lock = lockId;
 
 		// log start time and increase run attempts
 		if (TaskState.running.equals(newState)) {
@@ -313,10 +321,10 @@ public class QueueTask {
 	public boolean isLocked() {
 
 		return TaskState.running.equals(state) ||
-			   TaskState.finished.equals(state) ||
-			   TaskState.purge.equals(state) ||
-			   (TaskState.interrupted.equals(state) && runCount >= MAX_RETRIES) || // max runs when interrupted
-			   (TaskState.failed.equals(state) && runCount >= MAX_RETRIES);  // max runs when failed
+			TaskState.finished.equals(state) ||
+			TaskState.purge.equals(state) ||
+			(TaskState.interrupted.equals(state) && runCount >= MAX_RETRIES) || // max runs when interrupted
+			(TaskState.failed.equals(state) && runCount >= MAX_RETRIES);  // max runs when failed
 	}
 
 	@Override
@@ -392,5 +400,10 @@ public class QueueTask {
 
 		long difference = System.currentTimeMillis() - updateTime;
 		return difference >= ((long) ageInSeconds * 1000L);
+	}
+
+	public String getLock() {
+
+		return lock;
 	}
 }

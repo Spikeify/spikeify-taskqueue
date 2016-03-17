@@ -153,15 +153,22 @@ public class DefaultTaskQueueService implements TaskQueueService {
 
 					// will throw exception in case transition is not possible (we don't have the latest version from database)
 					if (!original.getUpdateTime().equals(updateTime)) {
-						throw new TaskQueueError("Thread collision, some other thread already modified task!");
+						throw new TaskQueueError("Thread collision (diff in update time), some other thread already modified task!");
 					}
 
-					original.setState(newState);
+					String lock = UUID.randomUUID().toString();
+					original.setState(newState, lock);
 
 					// update state ...
 					sfy.update(original).now();
 
-					return original;
+					// realod
+					QueueTask updatedTask = sfy.get(QueueTask.class).key(taskId).now();
+					if (lock.equals(updatedTask.getLock())) {
+						return updatedTask;
+					}
+
+					throw new TaskQueueError("Thread collision (diff in lock), some other thread already modified task!");
 				}
 			});
 

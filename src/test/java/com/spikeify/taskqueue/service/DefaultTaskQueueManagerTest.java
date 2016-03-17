@@ -136,7 +136,7 @@ public class DefaultTaskQueueManagerTest {
 
 		for (int i = 0; i < 20; i++) { // add few long lasting tasks
 			// add some long running tasks
-			queues.add(new LongRunningTask(1000), QUEUE);
+			queues.add(new LongRunningTask("Long: 1s", 1000), QUEUE);
 		}
 
 		manager.start(QUEUE);
@@ -172,7 +172,7 @@ public class DefaultTaskQueueManagerTest {
 
 		for (int i = 0; i < 100; i++) { // add a lot 1s tasks
 			// add some long running tasks
-			queues.add(new LongRunningTask(1000), QUEUE);
+			queues.add(new LongRunningTask("Long: 1s", 1000), QUEUE);
 		}
 
 		int MACHINES = 3;
@@ -251,7 +251,7 @@ public class DefaultTaskQueueManagerTest {
 		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
 		manager.register(QUEUE, false);
 
-		service.add(new LongRunningTask(10 * 1000), QUEUE);
+		service.add(new LongRunningTask("Long: 10s", 10 * 1000), QUEUE);
 
 		QueueInfo info = manager.info(QUEUE);
 		QueueSettings settings = info.getSettings();
@@ -291,7 +291,7 @@ public class DefaultTaskQueueManagerTest {
 		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
 		manager.register(QUEUE, false);
 
-		service.add(new LongRunningTask(), QUEUE);
+		service.add(new LongRunningTask("Long"), QUEUE);
 
 		QueueInfo info = manager.info(QUEUE);
 		QueueSettings settings = info.getSettings();
@@ -331,21 +331,21 @@ public class DefaultTaskQueueManagerTest {
 		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
 		manager.register(QUEUE, false);
 
-		service.add(new LongRunningTask(30 * 1000, true), QUEUE);
+		service.add(new LongRunningTask("Long 30s ", 30 * 1000, false), QUEUE); // will run 30s interrupt will be ignored
 
 		QueueInfo info = manager.info(QUEUE);
 		QueueSettings settings = info.getSettings();
-		settings.setTaskTimeoutSeconds(15);
-		settings.setTaskInterruptTimeoutSeconds(5); // 10 seconds to finish of (it should last 3 seconds)
+		settings.setTaskTimeoutSeconds(1);
+		settings.setTaskInterruptTimeoutSeconds(2); // 2 seconds to finish of (it should last 3 seconds) so task will be killed off
 
 		manager.set(QUEUE, settings); // 10 seconds for tasks to time out
 
 		manager.start(QUEUE);
 
-		Thread.sleep(20 * 1000); // wait 25 seconds ... task should be put in failed state at least once
+		Thread.sleep(25 * 1000); // wait 25 seconds ... task should be put in failed state at least once
 
-		// task should be in running state ...
-		List<QueueTask> list = queues.list(TaskState.running, QUEUE);
+		// task should be in failed state ... 3 times retried and failed ...
+		List<QueueTask> list = queues.list(TaskState.failed, QUEUE);
 		assertEquals(1, list.size());
 	}
 
@@ -370,7 +370,7 @@ public class DefaultTaskQueueManagerTest {
 		manager.set(QUEUE, settings); // 10 seconds for tasks to time out
 
 		for (int i = 0; i < 100; i++) {
-			service.add(new LongRunningTask(1000), QUEUE); // one second for each task (on 5 threads this should take 20s)
+			service.add(new LongRunningTask("Long: " + i, 1000), QUEUE); // one second for each task (on 5 threads this should take 20s)
 		}
 
 
@@ -449,7 +449,7 @@ public class DefaultTaskQueueManagerTest {
 				service.add(new TimeoutTask(true), QUEUE); // add 5 tasks that will time out
 			}
 
-			service.add(new LongRunningTask(500, true), QUEUE); // half a second for each task (100 * 500 = 50 000 / 5 = 10 000 - on 5 threads this should take 10s)
+			service.add(new LongRunningTask("Long: " + i, 500, true), QUEUE); // half a second for each task (100 * 500 = 50 000 / 5 = 10 000 - on 5 threads this should take 10s)
 			// + 5 * 500 = 2 500 for failing * 3 times retry = 7 500
 			// total at least: 20s
 		}
@@ -502,5 +502,81 @@ public class DefaultTaskQueueManagerTest {
 		//
 		List<QueueTask> list = queues.list(TaskState.failed, QUEUE);
 		assertEquals(5, list.size());
+	}
+
+	@Test
+	public void multipleThreadsWitKillLongTask() throws InterruptedException {
+
+		String QUEUE = "multipleThreadsWithOneTimeOutTask";
+		TaskQueueService service = new DefaultTaskQueueService(spikeify);
+		TaskQueueManager manager = new DefaultTaskQueueManager(spikeify, service);
+		manager.register(QUEUE, false);
+
+
+		QueueInfo info = manager.info(QUEUE);
+		QueueSettings settings = info.getSettings();
+		settings.setTaskTimeoutSeconds(2);
+		settings.setTaskInterruptTimeoutSeconds(2);
+
+		settings.setMaxThreads(2);
+		settings.setPurgeFailedAfterMinutes(10);
+		settings.setPurgeSuccessfulAfterMinutes(10);
+
+		manager.set(QUEUE, settings); // 5 seconds for tasks to time out
+
+		for (int i = 0; i < 15; i++) {
+			service.add(new LongRunningTask("Always interrupt 30s " + i, 30 * 1000, 3000), QUEUE); //33s to finish / is always interrupted
+			service.add(new LongRunningTask("No interrupt 2s: " + i, 1000, 1000), QUEUE); //2s to finish
+			service.add(new LongRunningTask("No interrupt 3s: " + i, 1000, 1000), QUEUE); //3s to finish / newer should be interrupted
+		}
+
+		manager.start(QUEUE);
+
+		Thread.sleep(25 * 1000); // wait all time out
+
+		info = manager.info(QUEUE);
+
+		/*assertEquals(100, info.getTotalFinished()); // 100 should be finished
+		assertEquals(5, info.getRunningTasks());    // 5 tasks stuck in running mode ... purge should fail them
+		assertEquals(105, info.getTotalTasks());
+
+		// get some statistics
+		// set purge lower
+		settings.setPurgeFailedAfterMinutes(0);
+		settings.setPurgeSuccessfulAfterMinutes(0);
+		settings.setTaskTimeoutSeconds(1);
+		manager.set(QUEUE, settings); // 1 seconds for tasks to time out
+
+		QueuePurger purger = new QueuePurger(queues, QUEUE, settings);
+		purger.run();
+
+		info = manager.info(QUEUE);
+
+		assertEquals(0, info.getFinishedTasks());
+		assertEquals(100, info.getPurgeTasks());
+		assertEquals(100, info.getTotalFinished());
+		assertEquals(5, info.getFailedTasks());
+		assertEquals(105, info.getTotalTasks());
+
+		TaskStatistics stats = info.getStatistics(TaskState.finished);
+
+		log.info("Min execution time: " + stats.getMinExecutionTime());
+		log.info("Max execution time: " + stats.getMaxExecutionTime());
+		log.info("Average execution time: " + stats.getAverageExecutionTime());
+		log.info("Total execution time: " + stats.getTotalExecutionTime());
+
+		log.info("Min job run time: " + stats.getMinJobRunTime());
+		log.info("Max job run time: " + stats.getMaxJobRunTime());
+		log.info("Average job run time: " + stats.getAverageJobRunTime());
+		log.info("Total job run time: " + stats.getTotalJobRunTime());
+
+		assertEquals(100, stats.getCount());
+		assertTrue(stats.getMinJobRunTime() >= 500);
+
+		assertTrue(stats.getMaxExecutionTime() < 25 * 1000); // last task waited at least 20s + 5s (time out ... ) ...
+
+		//
+		List<QueueTask> list = queues.list(TaskState.failed, QUEUE);
+		assertEquals(5, list.size());*/
 	}
 }

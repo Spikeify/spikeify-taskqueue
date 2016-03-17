@@ -466,7 +466,7 @@ public class MultithreadTaskExecutorServiceTest {
 		DefaultTaskQueueService service = new DefaultTaskQueueService(spikeify);
 		DefaultTaskExecutorService executor = new DefaultTaskExecutorService(service, QUEUE);
 
-		service.add(new LongRunningTask(), QUEUE);
+		service.add(new LongRunningTask("Long"), QUEUE);
 		final TestTaskContext context = new TestTaskContext();
 		final TaskResult[] result = new TaskResult[1];
 

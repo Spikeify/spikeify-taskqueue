@@ -1,5 +1,6 @@
 package com.spikeify.taskqueue.service;
 
+import com.spikeify.taskqueue.ExecutionContext;
 import com.spikeify.taskqueue.TaskContext;
 import com.spikeify.taskqueue.TaskResult;
 import com.spikeify.taskqueue.entities.TaskResultState;
@@ -9,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class QueueScheduler implements Runnable {
@@ -44,8 +46,6 @@ public class QueueScheduler implements Runnable {
 	@Override
 	public void run() {
 
-		TaskContext context = getContext();
-
 		log.debug("Starting task execution ...");
 
 		int successCount = 0;
@@ -56,15 +56,16 @@ public class QueueScheduler implements Runnable {
 		do {
 			// while there are tasks to be executed ... continue with execution
 
-			ExecutorService service = Executors.newSingleThreadExecutor();
-
 			if (context.interrupted()) {
 				log.warn("Execution was interrupted from outside!");
 				break;
 			}
 
-			WorkerThread worker = new WorkerThread(context);
-			service.execute(worker);
+			ExecutorService service = Executors.newSingleThreadExecutor();
+			TaskContext workerContext = new ExecutionContext(context);
+
+			WorkerThread worker = new WorkerThread(workerContext); // create execution thread
+			Future<?> future = service.submit(worker);
 
 			try {
 				// little trick ... trigger shutdown to await time out
@@ -75,35 +76,45 @@ public class QueueScheduler implements Runnable {
 				if (!service.awaitTermination(taskTimeout, TimeUnit.SECONDS)) {
 
 					// send interrupt signal
-					context.interrupt();
+					workerContext.interrupt();
 
+					service.shutdown();
 					// prolong for some time before giving up
 					if (!service.awaitTermination(taskInterruptTimeout, TimeUnit.SECONDS)) {
 
 						// task is stuck ... kill it
 						log.warn("Failed to gracefully interrupt task, killing task instead!");
 
+						future.cancel(true);
+						log.info("Task thread killed: canceled=" + future.isCancelled() + ", done=" + future.isDone());
 						service.shutdownNow();
+
+						// try to get some result ... if possible ...
 						result = worker.getResult();
 
 						if (result == null) {
 							result = TaskResult.failed();
-							worker.reset();
 						}
 					}
 					else {
 						// task finished successfully ... get the result
 						result = worker.getResult();
+						future.cancel(true);
+						service.shutdownNow();
 					}
 				}
 				else {
 					// task finished successfully ... get the result
 					result = worker.getResult();
+					future.cancel(true);
+					service.shutdownNow();
 				}
 			}
 			catch (InterruptedException e) {
 				log.error("Task has been timed out ...");
 				result = TaskResult.failed();
+				future.cancel(true);
+				service.shutdownNow();
 			}
 
 			if (result != null) {
@@ -121,17 +132,10 @@ public class QueueScheduler implements Runnable {
 			else {
 				log.debug("Last task result: " + result);
 			}
-
-			context.reset();
 		}
 		while (result != null);
 
 		log.debug("No new tasks found, stopping after: " + successCount + "/" + allCount + " execution(s).");
-	}
-
-	private TaskContext getContext() {
-
-		return context;
 	}
 
 	private class WorkerThread implements Runnable {
@@ -154,11 +158,6 @@ public class QueueScheduler implements Runnable {
 		public void run() {
 
 			result = executor.execute(context);
-		}
-
-		public void reset() {
-
-			executor.reset();
 		}
 	}
 }
